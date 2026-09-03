@@ -1,0 +1,40 @@
+<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","className":"front-page","layout":{"type":"constrained","contentSize":"1200px"}} -->
+<main class="wp-block-group front-page">
+
+	<!-- wp:pattern {"slug":"whoopstore/hero-panel"} /-->
+
+	<!-- wp:pattern {"slug":"whoopstore/advantages-sticky-scroll"} /-->
+
+	<!-- wp:group {"className":"front-page__catalog","layout":{"type":"constrained"}} -->
+	<div class="wp-block-group front-page__catalog">
+		<!-- wp:heading {"fontSize":"xl"} -->
+		<h2 class="wp-block-heading has-xl-font-size">Ремешки</h2>
+		<!-- /wp:heading -->
+
+		<!-- wp:woocommerce/product-collection {"queryId":1,"query":{"perPage":3,"pages":0,"offset":0,"postType":"product","order":"asc","orderBy":"title","search":"","exclude":[],"inherit":false,"taxQuery":{"product_cat":[16]},"isProductCollectionBlock":true,"woocommerceStockStatus":["instock","outofstock","onbackorder"]},"tagName":"div","displayLayout":{"type":"flex","columns":3,"shrinkColumns":true},"align":"wide"} -->
+		<div class="wp-block-woocommerce-product-collection alignwide">
+			<!-- wp:woocommerce/product-template -->
+			<!-- wp:woocommerce/product-image {"imageSizing":"full","isDescendentOfQueryLoop":true} /-->
+			<!-- wp:post-title {"textAlign":"left","level":3,"isLink":true,"fontSize":"md","__woocommerceNamespace":"woocommerce/product-collection/product-title"} /-->
+			<!-- wp:woocommerce/product-price {"isDescendentOfQueryLoop":true,"fontSize":"lg"} /-->
+			<!-- wp:woocommerce/product-button {"isDescendentOfQueryLoop":true,"fontSize":"sm"} /-->
+			<!-- /wp:woocommerce/product-template -->
+
+			<!-- wp:woocommerce/product-collection-no-results -->
+			<!-- wp:paragraph -->
+			<p>Товары в этой категории скоро появятся.</p>
+			<!-- /wp:paragraph -->
+			<!-- /wp:woocommerce/product-collection-no-results -->
+		</div>
+		<!-- /wp:woocommerce/product-collection -->
+	</div>
+	<!-- /wp:group -->
+
+	<!-- wp:pattern {"slug":"whoopstore/help-block"} /-->
+
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->

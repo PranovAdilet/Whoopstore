@@ -1,0 +1,106 @@
+/* Whoopstore — точечные переопределения WooCommerce-блоков сверх theme.json.
+   Классы соответствуют стандартным именам WC-блоков; часть значений
+   (особенно product-details/is-style-minimal) не проверена вживую в браузере —
+   см. известные ограничения pilot-этапа. */
+
+/* ---------- Product page layout ---------- */
+
+.product-page {
+	margin-top: 20px;
+}
+
+.product-page__layout {
+	gap: 40px;
+	align-items: flex-start;
+}
+
+.product-page__gallery {
+	position: sticky;
+	top: 20px;
+}
+
+.product-page__info > * {
+	margin-top: 20px;
+}
+
+.product-page__info > *:first-child {
+	margin-top: 0;
+}
+
+.wp-block-woocommerce-product-gallery {
+	border-radius: var(--wp--custom--radius--card);
+	overflow: hidden;
+}
+
+/* ---------- Add to cart / quantity stepper ---------- */
+
+.wc-block-add-to-cart-form .wc-block-components-quantity-selector {
+	border-radius: var(--wp--custom--radius--button);
+	overflow: hidden;
+}
+
+.wc-block-add-to-cart-form .wc-block-components-button,
+.wc-block-add-to-cart-form .single_add_to_cart_button {
+	border-radius: var(--wp--custom--radius--button);
+}
+
+/* ---------- Product details (accordion) ---------- */
+
+.wp-block-woocommerce-product-details.is-style-minimal {
+	margin-top: 70px;
+	border-top: 1px solid var(--wp--preset--color--surface-translucent);
+}
+
+/* ---------- Mini-cart (header) ---------- */
+
+.wc-block-mini-cart__button {
+	background: transparent;
+	border: none;
+}
+
+.wc-block-mini-cart__badge {
+	background: var(--wp--preset--color--accent);
+	color: var(--wp--preset--color--accent-contrast);
+}
+
+/* ---------- Product Collection cards (каталог на Главной) ---------- */
+
+.wp-block-woocommerce-product-collection .wc-block-product-template__responsive-flex-item {
+	background: var(--wp--preset--color--surface);
+	border-radius: var(--wp--custom--radius--card);
+	padding: 20px;
+}
+
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-image img {
+	border-radius: var(--wp--custom--radius--card);
+}
+
+/* ---------- Toast: "Товар добавлен в корзину" ---------- */
+
+.whoopstore-toast {
+	position: fixed;
+	right: 20px;
+	bottom: 20px;
+	z-index: 100;
+	background: var(--wp--preset--color--surface);
+	color: var(--wp--preset--color--foreground);
+	border-radius: var(--wp--custom--radius--card);
+	padding: 16px 24px;
+	font-size: var(--wp--preset--font-size--sm);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	opacity: 0;
+	transform: translateY(12px);
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	pointer-events: none;
+}
+
+.whoopstore-toast.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+@media (max-width: 781px) {
+	.product-page__gallery {
+		position: static;
+	}
+}

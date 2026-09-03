@@ -1,0 +1,293 @@
+/* Whoopstore — общие стили сайта (header/footer/hero/advantages/help-block/кнопки).
+   WC-специфичные переопределения — в woocommerce.css. */
+
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+
+body {
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	text-decoration: none;
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+	padding-top: 20px;
+	padding-bottom: 20px;
+}
+
+.site-header__row {
+	width: 100%;
+	gap: 20px;
+}
+
+.site-header__logo a {
+	font-size: 20px;
+	font-weight: 600;
+	color: var(--wp--preset--color--foreground);
+	text-transform: lowercase;
+	letter-spacing: -0.02em;
+}
+
+.site-header__nav {
+	gap: 24px;
+	flex: 1;
+	justify-content: center;
+}
+
+.site-header__nav-item {
+	margin: 0;
+	font-size: var(--wp--preset--font-size--sm);
+}
+
+.site-header__nav-item a {
+	color: var(--wp--preset--color--foreground);
+}
+
+.site-header__nav-item.is-active a {
+	color: var(--wp--preset--color--accent);
+}
+
+.site-header__actions {
+	gap: 12px;
+	align-items: center;
+}
+
+.site-header__cta .wp-block-button__link {
+	white-space: nowrap;
+}
+
+.site-header__burger {
+	display: none;
+	flex-direction: column;
+	justify-content: center;
+	gap: 4px;
+	width: 40px;
+	height: 40px;
+	background: var(--wp--preset--color--surface-translucent);
+	border: none;
+	border-radius: var(--wp--custom--radius--button);
+	cursor: pointer;
+	padding: 0 10px;
+}
+
+.site-header__burger span {
+	display: block;
+	height: 2px;
+	background: var(--wp--preset--color--foreground);
+	border-radius: 1px;
+}
+
+.site-header__burger[aria-expanded="true"] span:nth-child(1) {
+	transform: translateY(6px) rotate(45deg);
+}
+
+.site-header__burger[aria-expanded="true"] span:nth-child(2) {
+	opacity: 0;
+}
+
+.site-header__burger[aria-expanded="true"] span:nth-child(3) {
+	transform: translateY(-6px) rotate(-45deg);
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+	padding-top: 40px;
+	padding-bottom: 40px;
+	margin-top: 40px;
+	border-top: 1px solid var(--wp--preset--color--surface-translucent);
+}
+
+.site-footer__row {
+	width: 100%;
+	gap: 20px;
+}
+
+.site-footer__nav {
+	gap: 20px;
+}
+
+.site-footer__nav-item,
+.site-footer__phone,
+.site-footer__legal {
+	margin: 0;
+	font-size: var(--wp--preset--font-size--sm);
+}
+
+.site-footer__nav-item a,
+.site-footer__phone a,
+.site-footer__legal a {
+	color: var(--wp--preset--color--foreground);
+}
+
+.site-footer__legal {
+	margin-top: 20px;
+	color: var(--wp--preset--color--foreground-muted);
+}
+
+/* ---------- Buttons ---------- */
+
+.wp-block-button.is-style-outline .wp-block-button__link {
+	background: var(--wp--preset--color--surface-translucent);
+	color: var(--wp--preset--color--foreground);
+	border: none;
+}
+
+/* ---------- Hero ---------- */
+
+.hero-panel {
+	position: relative;
+	overflow: hidden;
+	margin-top: 20px;
+}
+
+.hero-panel::before {
+	content: "";
+	position: absolute;
+	inset: -20% -10% auto auto;
+	width: 500px;
+	height: 500px;
+	background: radial-gradient(circle, var(--wp--preset--color--accent) 0%, transparent 70%);
+	opacity: 0.15;
+	filter: blur(40px);
+	pointer-events: none;
+}
+
+.hero-panel__title,
+.hero-panel__text,
+.hero-panel__actions {
+	position: relative;
+	max-width: 560px;
+}
+
+.hero-panel__text {
+	color: var(--wp--preset--color--foreground-muted);
+	margin-top: 16px;
+}
+
+.hero-panel__actions {
+	margin-top: 30px;
+}
+
+/* ---------- Advantages (sticky-scroll) ---------- */
+
+.advantages {
+	margin-top: 70px;
+}
+
+.advantages__title {
+	margin-bottom: 30px;
+}
+
+.advantages__scroller {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 40px;
+}
+
+.advantages__sticky {
+	position: sticky;
+	top: 20px;
+	align-self: start;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.advantages__phone {
+	width: 100%;
+	aspect-ratio: 3 / 4;
+	max-width: 305px;
+	border-radius: 20px;
+	background: var(--wp--preset--color--surface);
+	border: 1px solid var(--wp--preset--color--surface-translucent);
+}
+
+.advantages__caption-title {
+	font-size: var(--wp--preset--font-size--md);
+	font-weight: 600;
+	margin: 0 0 8px;
+}
+
+.advantages__caption-text {
+	font-size: var(--wp--preset--font-size--sm);
+	color: var(--wp--preset--color--foreground-muted);
+	margin: 0;
+	max-width: 416px;
+}
+
+.advantages__items {
+	display: flex;
+	flex-direction: column;
+	gap: 40px;
+}
+
+.advantages__item {
+	min-height: 60vh;
+	border-left: 2px solid var(--wp--preset--color--surface-translucent);
+	padding-left: 20px;
+	opacity: 0.35;
+	transition: opacity 0.3s ease;
+}
+
+.advantages__item.is-active {
+	opacity: 1;
+	border-left-color: var(--wp--preset--color--accent);
+}
+
+/* ---------- Help block ---------- */
+
+.help-block__columns p {
+	color: var(--wp--preset--color--foreground-muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 781px) {
+	.site-header__nav {
+		display: none;
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 16px;
+		padding: 20px;
+		background: var(--wp--preset--color--surface);
+		border-radius: 0 0 20px 20px;
+	}
+
+	.site-header {
+		position: relative;
+	}
+
+	.site-header__nav.is-open {
+		display: flex;
+	}
+
+	.site-header__cta {
+		display: none;
+	}
+
+	.site-header__burger {
+		display: flex;
+	}
+
+	.advantages__scroller {
+		grid-template-columns: 1fr;
+	}
+
+	.advantages__sticky {
+		position: static;
+	}
+
+	.advantages__item {
+		min-height: auto;
+	}
+}
