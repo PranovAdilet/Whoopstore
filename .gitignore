@@ -43,3 +43,8 @@ wp-config.php
 *.pem
 id_rsa*
 *credentials*
+
+# Локальные вспомогательные материалы для вёрстки (дампы/заметки Figma MCP).
+# Хранятся только на диске стенда, в репозиторий не попадают.
+/wp-content/themes/whoopstore/docs/figma-design/
+/wp-content/themes/whoopstore/docs/figma-homepage-mobile-metadata.xml
