@@ -297,11 +297,11 @@ table.variations.variations--visually-replaced {
 	margin-top: 24px;
 }
 
-/* Поля количества в макете нет (см. Figma 30:143/30:283). У вариативного
-   товара оно вообще не печатается — шаблон переопределён
-   (woocommerce/single-product/add-to-cart/variation-add-to-cart-button.php).
-   Это правило остаётся страховкой для простых товаров, у которых поле
-   печатает другой шаблон WooCommerce (simple.php). Селектор длиннее
+/* Поля количества в макете нет (см. Figma 30:143/30:283). У вариативного и
+   простого товара оно вообще не печатается — оба шаблона переопределены
+   (woocommerce/single-product/add-to-cart/variation-add-to-cart-button.php
+   и simple.php). Это правило остаётся страховкой на случай, если поле
+   напечатает какой-то другой шаблон WooCommerce. Селектор длиннее
    необходимого намеренно: он перебивает
    `.woocommerce div.product form.cart div.quantity{display:inline-block}`
    из woocommerce-blocktheme.css. */

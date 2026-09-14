@@ -84,24 +84,34 @@
 		} );
 	}
 
+	// Ошибка Store API при изменении корзины (товар закончился, превышен
+	// лимит количества, истекла сессия) отдельным сообщением не показывается —
+	// такого состояния в макете нет. Корзина просто перечитывается, и степпер,
+	// счётчик и drawer возвращаются к фактическому состоянию WooCommerce.
+	// Без этого промис падал необработанным в консоль, а интерфейс оставался
+	// в рассинхроне с корзиной.
+	function recover() {
+		return refresh().catch( function () {} );
+	}
+
 	function updateItem( key, quantity ) {
 		return request( 'cart/update-item', {
 			method: 'POST',
 			body: { key: key, quantity: quantity },
-		} ).then( setState );
+		} ).then( setState ).catch( recover );
 	}
 
 	function removeItem( key ) {
 		return request( 'cart/remove-item', {
 			method: 'POST',
 			body: { key: key },
-		} ).then( setState );
+		} ).then( setState ).catch( recover );
 	}
 
 	function clear() {
 		return request( 'cart/items', { method: 'DELETE' } ).then( function () {
 			return refresh();
-		} );
+		} ).catch( recover );
 	}
 
 	function findItem( id ) {
@@ -185,8 +195,11 @@
 		var minus = stepper.querySelector( '.cart-stepper__button--minus' );
 		var plus = stepper.querySelector( '.cart-stepper__button--plus' );
 
-		// Вариативный товар кладёт id выбранной вариации в это скрытое поле,
-		// простой — id самого товара в input[name=product_id].
+		// Вариативный товар кладёт id выбранной вариации в скрытое поле
+		// variation_id (id родителя — в input[name=product_id], см.
+		// variation-add-to-cart-button.php). У простого товара такого поля нет:
+		// штатная разметка simple.php держит id только в самой кнопке
+		// button[name=add-to-cart].
 		function currentId() {
 			var variation = form.querySelector( 'input.variation_id' );
 
@@ -194,7 +207,7 @@
 				return variation.value;
 			}
 
-			var product = form.querySelector( 'input[name="product_id"]' );
+			var product = form.querySelector( 'input[name="product_id"]' ) || form.querySelector( 'button[name="add-to-cart"]' );
 
 			return product ? product.value : null;
 		}
@@ -239,6 +252,19 @@
 			addItem( id, 1 ).catch( function () {
 				// Если запрос не прошёл — отправляем форму обычным способом,
 				// чтобы пользователь всё равно добавил товар.
+				// form.submit() не передаёт имя и значение нажатой кнопки, а у
+				// простого товара id лежит именно в button[name=add-to-cart] —
+				// без скрытого поля WooCommerce получил бы форму без
+				// add-to-cart и ничего бы не добавил.
+				if ( ! form.querySelector( 'input[name="add-to-cart"]' ) ) {
+					var field = document.createElement( 'input' );
+
+					field.type = 'hidden';
+					field.name = 'add-to-cart';
+					field.value = id;
+					form.appendChild( field );
+				}
+
 				form.submit();
 			} ).then( function () {
 				button.classList.remove( 'is-busy' );
@@ -294,7 +320,11 @@
 	function boot() {
 		initHeaderButton();
 		initProductForm();
-		refresh();
+
+		// Не удалось загрузить корзину — интерфейс остаётся в исходном
+		// состоянии (кнопка корзины скрыта), а форма товара при отправке
+		// уйдёт запасным обычным POST (см. обработчик submit).
+		refresh().catch( function () {} );
 	}
 
 	if ( 'loading' === document.readyState ) {
