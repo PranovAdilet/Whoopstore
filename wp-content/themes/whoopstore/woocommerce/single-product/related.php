@@ -39,19 +39,13 @@ if ( empty( $related_products ) ) {
 		<div class="related-carousel__track">
 			<?php foreach ( $related_products as $related_product ) : ?>
 				<?php
-				whoopstore_device_card( [
-					'name'        => $related_product->get_name(),
-					'price_html'  => $related_product->get_price_html(),
-					// woocommerce_single (600px), а не woocommerce_thumbnail (300px):
-					// медиа-зона карточки — 320px, на retina 300px заметно мылит.
-					// Если у фото такого размера нет (оригинал мельче 600px),
-					// WordPress сам отдаст оригинал.
-					'image'       => wp_get_attachment_image_url( $related_product->get_image_id(), 'woocommerce_single' ),
-					'href'        => $related_product->get_permalink(),
-					// Текст кнопки из макета (node 30:217). Переменные товары
-					// ведут на свою страницу — выбрать размер всё равно нужно там.
+				// Данные товара (название, цена, ссылка, фото, бейдж) — общий
+				// адаптер inc/woocommerce/product-card.php. Текст кнопки — решение
+				// секции по макету (node 30:217). Переменные товары ведут на свою
+				// страницу — выбрать размер всё равно нужно там.
+				whoopstore_device_card( array_merge( whoopstore_product_card_data( $related_product ), [
 					'button_text' => 'Купить',
-				] );
+				] ) );
 				?>
 			<?php endforeach; ?>
 		</div>

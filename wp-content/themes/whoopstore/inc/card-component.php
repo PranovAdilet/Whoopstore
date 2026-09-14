@@ -56,6 +56,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                     .device-card__media--has-photo).
  *                                     Прозрачный PNG-вырез, заполняется
  *                                     через object-fit:contain.
+ *     @type int|null    $image_id    ID вложения медиатеки — для карточек
+ *                                     реальных товаров (см.
+ *                                     whoopstore_product_card_data() в
+ *                                     inc/woocommerce/product-card.php). Имеет
+ *                                     приоритет над image: тег печатает
+ *                                     wp_get_attachment_image() — со srcset,
+ *                                     sizes, width/height и alt из медиатеки.
+ *     @type string|null $image_size  Размер вложения для image_id, по
+ *                                     умолчанию 'full'.
  *     @type string      $button_text Текст кнопки, по умолчанию "Купить".
  *     @type string      $href        Ссылка кнопки, по умолчанию "#".
  *     @type string|array|null $modifier BEM-модификатор карточки (или массив
@@ -88,17 +97,40 @@ function whoopstore_device_card( array $item ) {
 	foreach ( $modifiers as $modifier_name ) {
 		$modifier .= ' device-card--' . $modifier_name;
 	}
+
+	// Фото — либо вложение медиатеки (карточки реальных товаров: WordPress сам
+	// выводит srcset/sizes, width/height и alt из медиатеки), либо готовый путь
+	// (статичные карточки паттернов). Класс и loading у тега одни и те же.
+	// Вложение, которого нет, даёт пустую строку — тогда остаётся заглушка.
+	$photo = '';
+	if ( ! empty( $item['image_id'] ) ) {
+		$photo = wp_get_attachment_image(
+			$item['image_id'],
+			! empty( $item['image_size'] ) ? $item['image_size'] : 'full',
+			false,
+			[
+				'class'   => 'device-card__photo',
+				'loading' => 'lazy',
+			]
+		);
+	} elseif ( ! empty( $item['image'] ) ) {
+		$photo = '<img class="device-card__photo" src="' . esc_url( $item['image'] ) . '" alt="" loading="lazy" />';
+	}
 	?>
 	<div class="device-card card<?php echo esc_attr( $modifier ); ?>">
-		<div class="device-card__media<?php echo ! empty( $item['image'] ) ? ' device-card__media--has-photo' : ''; ?>" aria-hidden="true">
+		<div class="device-card__media<?php echo '' !== $photo ? ' device-card__media--has-photo' : ''; ?>" aria-hidden="true">
 			<?php if ( ! empty( $item['watermark'] ) ) : ?>
 				<span class="device-card__watermark"><?php echo esc_html( $item['watermark'] ); ?></span>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['phone'] ) ) : ?>
 				<span class="device-card__phone"><img src="<?php echo esc_url( $item['phone'] ); ?>" alt="" width="157" height="321" loading="lazy" /></span>
 			<?php endif; ?>
-			<?php if ( ! empty( $item['image'] ) ) : ?>
-				<img class="device-card__photo" src="<?php echo esc_url( $item['image'] ); ?>" alt="" loading="lazy" />
+			<?php if ( '' !== $photo ) : ?>
+				<?php
+				// "\n" — PHP съедает перевод строки сразу после закрывающего тега,
+				// а статичные карточки должны остаться в прежней разметке.
+				echo $photo . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- собрано через esc_url() или wp_get_attachment_image().
+				?>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['phone'] ) ) : ?>
 				<span class="device-card__fade"></span>

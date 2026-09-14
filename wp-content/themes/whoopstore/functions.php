@@ -16,6 +16,7 @@ require_once get_theme_file_path( 'inc/card-component.php' );
 require_once get_theme_file_path( 'inc/page-head-component.php' );
 require_once get_theme_file_path( 'inc/product-data.php' );
 require_once get_theme_file_path( 'inc/woocommerce/template-hooks.php' );
+require_once get_theme_file_path( 'inc/woocommerce/product-card.php' );
 require_once get_theme_file_path( 'inc/woocommerce/single-product.php' );
 require_once get_theme_file_path( 'inc/woocommerce/product-accordions.php' );
 require_once get_theme_file_path( 'inc/woocommerce/cart-ui.php' );

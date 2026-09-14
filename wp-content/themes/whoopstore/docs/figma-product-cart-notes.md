@@ -234,6 +234,37 @@ woocommerce-blocktheme.css, плюс скрытый стилями `<input type=
    (`gallery_thumbnail_image_width`). Для уже загруженных фото выполнен
    `wp media regenerate --only-missing`; при заливке новых он не нужен.
 
+## Карточка из товара WooCommerce (2026-09-14)
+
+Подготовка к подключению реальных товаров: данные карточки `.device-card`
+собираются из объекта товара в одном месте, а не в каждой секции.
+
+```
+WC_Product
+  └─ whoopstore_product_card_data( $product )      inc/woocommerce/product-card.php
+       name       ← get_name()
+       price_html ← get_price_html()   (диапазон, «старая/новая» — формирует WooCommerce)
+       href       ← get_permalink()
+       image_id   ← get_image_id()     (0 → у карточки остаётся своя заглушка)
+       image_size ← 'woocommerce_single' по умолчанию
+       badge      ← 'Распродажа', только если is_on_sale()
+  └─ + решения секции (button_text, modifier)       напр. related.php
+  └─ whoopstore_device_card( $item )                inc/card-component.php
+       image_id → wp_get_attachment_image(): src, srcset, sizes, width/height, alt из медиатеки
+       image    → прежний <img src alt=""> (статичные карточки паттернов, без изменений)
+```
+
+Сейчас адаптер использует только «Вам может понравиться»
+(`woocommerce/single-product/related.php`). Статичные карточки Главной, Подписок
+и каталогов ремешков по-прежнему идут из PHP-массивов — их перевод на товары
+ждёт данных production.
+
+Что поменялось в разметке related-карточек: у `<img>` появились `srcset`,
+`sizes`, `width`/`height`, `decoding` и `alt` из медиатеки; `src` тот же.
+На вёрстку это не влияет — `.device-card__photo` позиционирован абсолютно на
+всю медиа-зону (`width/height: 100%`). Бейдж «Распродажа» появится у
+related-карточки только у товара со скидкой — у pilot-товаров скидок нет.
+
 ## Отложенные TODO (зафиксировано 2026-09-14)
 
 Найдено при исправлении простых товаров в корзине. Решение заказчика — пока не
