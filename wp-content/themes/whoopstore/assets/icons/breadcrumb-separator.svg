@@ -1,0 +1,7 @@
+<!-- Разделитель хлебных крошек — наклонная черта (Figma node 1:2443…1:2445
+     на desktop, 1:4618…1:4620 на mobile). В макете лежит с opacity 0.5 —
+     прозрачность задаётся из CSS (.page-head__crumb-sep), не в самом файле,
+     чтобы иконку можно было переиспользовать и в непрозрачном контексте. -->
+<svg width="8" height="15" viewBox="0 0 7.55018 14.3002" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<path d="M0.400088 13.9001L7.15009 0.400088" stroke="white" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

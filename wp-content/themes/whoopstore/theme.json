@@ -5,7 +5,7 @@
 		"appearanceTools": true,
 		"useRootPaddingAwareAlignments": true,
 		"layout": {
-			"contentSize": "1200px",
+			"contentSize": "1120px",
 			"wideSize": "1320px"
 		},
 		"color": {
@@ -23,7 +23,11 @@
 				{ "slug": "foreground-muted", "name": "Текст приглушённый", "color": "rgba(255,255,255,0.9)" },
 				{ "slug": "foreground-faint", "name": "Текст (старая цена)", "color": "rgba(255,255,255,0.2)" },
 				{ "slug": "surface-translucent", "name": "Поверхность полупрозрачная", "color": "rgba(255,255,255,0.1)" },
-				{ "slug": "surface-faint", "name": "Поверхность (бейдж)", "color": "rgba(255,255,255,0.05)" }
+				{ "slug": "surface-faint", "name": "Поверхность (бейдж)", "color": "rgba(255,255,255,0.05)" },
+				{ "slug": "on-light", "name": "Текст на светлой карточке", "color": "#0f1217" },
+				{ "slug": "on-light-muted", "name": "Текст на светлой карточке (приглушённый)", "color": "rgba(15,18,23,0.9)" },
+				{ "slug": "on-light-faint", "name": "Текст на светлой карточке (юр. текст)", "color": "rgba(15,18,23,0.4)" },
+				{ "slug": "on-light-subtle", "name": "Подложка на светлой карточке", "color": "rgba(15,18,23,0.05)" }
 			]
 		},
 		"typography": {
@@ -36,7 +40,7 @@
 					"fontFace": [
 						{
 							"fontFamily": "Onest",
-							"fontWeight": "400 700",
+							"fontWeight": "100 900",
 							"fontStyle": "normal",
 							"fontStretch": "normal",
 							"src": [ "file:./assets/fonts/onest/onest-latin.woff2" ],
@@ -44,7 +48,7 @@
 						},
 						{
 							"fontFamily": "Onest",
-							"fontWeight": "400 700",
+							"fontWeight": "100 900",
 							"fontStyle": "normal",
 							"fontStretch": "normal",
 							"src": [ "file:./assets/fonts/onest/onest-cyrillic.woff2" ],
@@ -80,6 +84,10 @@
 			"radius": {
 				"button": "20px",
 				"card": "20px"
+			},
+			"sectionGap": {
+				"default": "140px",
+				"tight": "100px"
 			}
 		}
 	},
@@ -116,8 +124,8 @@
 					"padding": {
 						"top": "12px",
 						"bottom": "12px",
-						"left": "24px",
-						"right": "24px"
+						"left": "20px",
+						"right": "20px"
 					}
 				}
 			},
@@ -147,6 +155,11 @@
 			}
 		}
 	},
+	"customTemplates": [
+		{ "name": "page-straps-50", "title": "Ремешки для WHOOP 5.0 (каталог)", "postTypes": [ "page" ] },
+		{ "name": "page-straps-mg", "title": "Ремешки для WHOOP MG (каталог)", "postTypes": [ "page" ] },
+		{ "name": "page-subscriptions", "title": "Подписки Whoop", "postTypes": [ "page" ] }
+	],
 	"templateParts": [
 		{ "name": "header", "area": "header", "title": "Header" },
 		{ "name": "footer", "area": "footer", "title": "Footer" }

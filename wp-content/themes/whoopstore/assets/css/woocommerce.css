@@ -3,64 +3,519 @@
    (особенно product-details/is-style-minimal) не проверена вживую в браузере —
    см. известные ограничения pilot-этапа. */
 
-/* ---------- Product page layout ---------- */
+/* ---------- Product page layout (Figma 30:143 desktop / 30:1180 mobile) ---------- */
 
+/* Те же 54px сверху и 40px по бокам, что у шапки контента подстраниц
+   (.page-head в theme.css): контентная сетка 1200/1120 у всех страниц
+   одна, и низ шапки сайта (y=80) → верх крошек (y=134) в макете товара
+   совпадает с каталогами ремешков. Отдельного значения не заводим. */
 .product-page {
-	margin-top: 20px;
+	padding: 54px 40px 0;
 }
 
-.product-page__layout {
-	gap: 40px;
-	align-items: flex-start;
-}
-
-.product-page__gallery {
-	position: sticky;
-	top: 20px;
-}
-
-.product-page__info > * {
-	margin-top: 20px;
-}
-
-.product-page__info > *:first-child {
+/* Крошки — первый элемент страницы: гасим blockGap-отступ WP у обёртки
+   товара, иначе к 60px из макета добавляется ещё 24px (тот же класс
+   проблем, что разобран у .page-head/.section-canvas в theme.css). */
+.product-page > .product-page__product {
 	margin-top: 0;
 }
 
-.wp-block-woocommerce-product-gallery {
-	border-radius: var(--wp--custom--radius--card);
-	overflow: hidden;
+/* 60px = 212 (верх фото и H1) − 152 (низ строки крошек) по Figma. */
+.product-page__layout {
+	display: flex;
+	align-items: flex-start;
+	gap: 20px;
+	margin-top: 60px;
 }
 
-/* ---------- Add to cart / quantity stepper ---------- */
-
-.wc-block-add-to-cart-form .wc-block-components-quantity-selector {
-	border-radius: var(--wp--custom--radius--button);
-	overflow: hidden;
+/* Классическая раскладка WooCommerce — два блока по 48% на float
+   (woocommerce-layout.css) плюс margin-bottom:2em у галереи и
+   block-gap у каждого элемента колонки данных (woocommerce-blocktheme.css).
+   В макете колонки фиксированной ширины, а все вертикальные отступы
+   отмерены по координатам, поэтому чужую раскладку снимаем целиком —
+   одним блоком, а не подмешивая !important к каждому правилу ниже.
+   Селекторы длиннее необходимого намеренно: правила WooCommerce построены
+   как `.woocommerce div.product div.images` (3 класса + 2 тега), более
+   короткие им проигрывают независимо от порядка подключения файлов. */
+.woocommerce .product-page div.product div.images,
+.woocommerce .product-page div.product div.summary {
+	float: none;
+	width: auto;
+	margin-bottom: 0;
 }
 
-.wc-block-add-to-cart-form .wc-block-components-button,
-.wc-block-add-to-cart-form .single_add_to_cart_button {
-	border-radius: var(--wp--custom--radius--button);
+.woocommerce .product-page div.product div.summary > * {
+	margin-bottom: 0;
 }
 
-/* ---------- Product details (accordion) ---------- */
+/* 645 = миниатюры 120 + 12 + большое фото 513; 455 — колонка данных.
+   645 + 20 + 455 = 1120 — контентная ширина страницы. */
+.product-page__layout > .woocommerce-product-gallery {
+	flex: 0 0 645px;
+	max-width: 645px;
+}
 
-.wp-block-woocommerce-product-details.is-style-minimal {
-	margin-top: 70px;
+.product-page__summary {
+	flex: 0 0 455px;
+	max-width: 455px;
+}
+
+/* ---------- Галерея товара (Figma 30:246 / 30:144 / 30:269) ---------- */
+
+/* Раскладка: колонка миниатюр 120px слева, большое фото 513×508 справа,
+   зазор 12px (172 − 160 по координатам макета). flexslider дописывает
+   свою обёртку .flex-viewport вокруг .woocommerce-product-gallery__wrapper
+   и приклеивает список миниатюр В КОНЕЦ галереи — поэтому порядок правим
+   через order, а не разметкой. */
+.product-page .woocommerce-product-gallery {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	position: relative;
+}
+
+/* Большое фото. До инициализации flexslider .__wrapper — прямой ребёнок
+   галереи, после — лежит внутри .flex-viewport и получает от flexslider
+   инлайновую ширину дорожки (300%), поэтому ширину фиксируем ровно на том
+   элементе, который в этот момент является flex-ребёнком галереи. */
+.product-page .woocommerce-product-gallery > .woocommerce-product-gallery__wrapper,
+.product-page .woocommerce-product-gallery > .flex-viewport {
+	flex: 0 0 513px;
+	max-width: 513px;
+}
+
+.product-page .woocommerce-product-gallery__image {
+	background: var(--wp--preset--color--surface);
+}
+
+/* 513×508 из макета. object-fit: contain — фото товара это прозрачный PNG
+   произвольных пропорций, обрезать его нельзя; в Figma поле вокруг фото
+   создаёт сам PNG, а не отступы рамки, поэтому padding не задаём. */
+.product-page .woocommerce-product-gallery__image img {
+	display: block;
+	width: 100%;
+	aspect-ratio: 513 / 508;
+	object-fit: contain;
+}
+
+/* Колонка миниатюр. Селектор намеренно длиннее необходимого: у WooCommerce
+   раскладка миниатюр задана как
+   `.woocommerce div.product div.images .flex-control-thumbs li`
+   (4 класса + 3 тега), и любой более короткий селектор ей проигрывает по
+   специфичности независимо от порядка подключения файлов. Добавленный
+   .product-page даёт на класс больше. */
+.woocommerce .product-page div.product div.images .flex-control-thumbs {
+	order: -1;
+	flex: 0 0 120px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+}
+
+.woocommerce .product-page div.product div.images .flex-control-thumbs li {
+	width: 120px;
+	float: none;
+}
+
+.woocommerce .product-page div.product div.images .flex-control-thumbs li img {
+	display: block;
+	width: 120px;
+	height: 120px;
+	object-fit: contain;
+	background: var(--wp--preset--color--surface);
+}
+
+/* Слой увеличения при наведении (jquery.zoom). WooCommerce задаёт ему
+   `background-color:#fff` — расчёт на непрозрачные фото товара. У нас фото
+   это прозрачные PNG-вырезы, поэтому белая заливка просвечивала сквозь них и
+   при наведении фон "вспыхивал" белым. Возвращаем тот же фон, что и у самой
+   фотозоны, — увеличенный кадр ложится на ту же подложку, что и обычный. */
+.woocommerce .product-page div.product div.images .woocommerce-product-gallery__wrapper .zoomImg {
+	background-color: var(--wp--preset--color--surface);
+}
+
+/* Кнопка-лупа: квадрат 30×30 со скруглением 6px в левом верхнем углу
+   большого фото, отступ 12px (Figma 30:276 — x 184 при фото от 172,
+   y 224 при фото от 212). Значок рисует сам WooCommerce псевдоэлементами
+   ::before/::after — здесь только перекрашиваем его в белый и
+   пересчитываем под бокс 30px вместо штатных 36px; своей иконки-ассета
+   не заводим. */
+.woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger {
+	left: calc(120px + 12px + 12px);
+	right: auto;
+	top: 12px;
+	width: 30px;
+	height: 30px;
+	box-sizing: border-box;
+	background: var(--wp--preset--color--surface-translucent);
+	border-radius: 6px;
+}
+
+.woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger::before {
+	border-color: var(--wp--preset--color--foreground);
+	border-width: 1.5px;
+	width: 11px;
+	height: 11px;
+	left: 7px;
+	top: 6px;
+}
+
+.woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger::after {
+	background: var(--wp--preset--color--foreground);
+	width: 1.5px;
+	height: 7px;
+	left: 19px;
+	top: 18px;
+}
+
+/* Точки-пагинация поверх нижнего края большого фото: 3 точки 4×4 с шагом
+   3px (общая ширина 18px из макета), 12px от низа фото. Разметку строит
+   assets/js/product-gallery.js. */
+.product-gallery__dots {
+	position: absolute;
+	left: calc(120px + 12px);
+	bottom: 12px;
+	width: 513px;
+	display: flex;
+	justify-content: center;
+	gap: 3px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.product-gallery__dot {
+	display: block;
+	width: 4px;
+	height: 4px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.3);
+	cursor: pointer;
+}
+
+.product-gallery__dot.is-active {
+	background: var(--wp--preset--color--foreground);
+}
+
+/* ---------- Колонка данных товара (Figma 30:184 / 30:1222) ---------- */
+
+/* H1 товара — единственное место с этим кеглем (26px desktop / 18px mobile,
+   Onest Medium, трекинг −1%): ни .section-heading (32/26, Regular), ни
+   .card-heading (20/18, Medium) сюда не подходят, поэтому свой класс,
+   а не подгонка общего. */
+.product-page__summary .product_title {
+	margin: 0;
+	font-size: 26px;
+	font-weight: 500;
+	line-height: 1.1;
+	letter-spacing: -0.26px;
+	color: var(--wp--preset--color--foreground);
+}
+
+/* Ниже все вертикальные зазоры — прямо из координат макета; на desktop и
+   mobile они совпадают (25 / 24 / 6 / 24 / 20), поэтому в медиазапросе
+   не повторяются. */
+.product-page__summary .price {
+	margin: 25px 0 0;
+}
+
+.woocommerce .product-page div.product div.summary form.cart {
+	margin: 24px 0 0;
+}
+
+/* ---------- Переключатель размера (Figma 30:249…30:258) ---------- */
+
+/* Нативный <select> остаётся источником истины, его таблица просто
+   скрыта — см. assets/js/variation-swatches.js. */
+table.variations.variations--visually-replaced {
+	display: none;
+}
+
+.reset_variations.reset_variations--hidden {
+	display: none;
+}
+
+.variation-swatches {
+	margin: 0;
+}
+
+/* Строка "Размер  S": название атрибута SemiBold 13, текущее значение —
+   Regular 13, зазор 6px по координатам (x 705 → 759 при ширине надписи ~48). */
+.variation-swatches__label {
+	display: flex;
+	gap: 6px;
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--foreground);
+}
+
+.variation-swatches__name {
+	font-weight: 600;
+}
+
+.variation-swatches__options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+	margin-top: 6px;
+}
+
+/* Круг 29×29 (группа 65.167×29 из макета = 29 + 7 + 29). Цвета — те же две
+   заливки, что и у общих стилей кнопки (theme.css, раздел "Buttons"):
+   неактивный свотч = Dark (rgba(255,255,255,0.1) + белый текст),
+   активный = White (белая заливка + тёмный текст). Здесь остаётся только
+   форма и кегль, которые у свотча свои. */
+.variation-swatches__option {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 29px;
+	height: 29px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	font-family: inherit;
+	font-size: 12px;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ---------- Кнопка "Добавить в корзину" ---------- */
+
+/* 176×40 r20 с текстом 14px — это Primary из общей системы кнопок
+   (.wp-element-button приходит от WooCommerce/theme.json), ширина набегает
+   от текста и паддингов 20px (136 + 20 + 20 = 176, node 30:134/30:135 —
+   правка 2026-09-11: в theme.json стояли 24px, кнопка была на 8px шире
+   макета, и так на всех core/button сайта). Здесь — только отступ. */
+.product-page__summary .woocommerce-variation-add-to-cart {
+	margin-top: 24px;
+}
+
+/* Поля количества в макете нет (см. Figma 30:143/30:283). У вариативного
+   товара оно вообще не печатается — шаблон переопределён
+   (woocommerce/single-product/add-to-cart/variation-add-to-cart-button.php).
+   Это правило остаётся страховкой для простых товаров, у которых поле
+   печатает другой шаблон WooCommerce (simple.php). Селектор длиннее
+   необходимого намеренно: он перебивает
+   `.woocommerce div.product form.cart div.quantity{display:inline-block}`
+   из woocommerce-blocktheme.css. */
+.woocommerce .product-page div.product div.summary div.quantity {
+	display: none;
+}
+
+/* ---------- Описание товара (Figma 30:259 / 30:1233) ---------- */
+
+/* 13px Regular белым на обоих брейкпоинтах — это не .section-subtext
+   (14/13px приглушённым): и кегль на desktop, и цвет другие. */
+.product-page__description {
+	margin-top: 20px;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--foreground);
+}
+
+.product-page__description p {
+	margin: 0;
+}
+
+/* Пустая строка между абзацами — ровно одна строка текста, как в макете
+   (там она набрана символом-заполнителем внутри одного абзаца). */
+.product-page__description p + p {
+	margin-top: 1.2em;
+}
+
+/* Полужирные зачины абзацев — Onest SemiBold (600), а не браузерный bold. */
+.product-page__description strong {
+	font-weight: 600;
+}
+
+/* ---------- Аккордеоны товара (Figma 30:260…30:269) ---------- */
+
+/* Строка 40px между линиями-разделителями: 12px + текст 13px (15.6) + 12px.
+   Разделители — border-top у каждого пункта плюс border-bottom у всего
+   блока, поэтому линий на одну больше, чем пунктов (640 / 680 / 720 в
+   макете при двух пунктах). */
+.product-accordion {
+	margin-top: 25px;
+	border-bottom: 1px solid var(--wp--preset--color--surface-translucent);
+}
+
+.product-accordion__item {
 	border-top: 1px solid var(--wp--preset--color--surface-translucent);
+}
+
+.product-accordion__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 0;
+	cursor: pointer;
+	list-style: none;
+}
+
+.product-accordion__head::-webkit-details-marker {
+	display: none;
+}
+
+.product-accordion__title {
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--foreground);
+}
+
+.product-accordion__icon {
+	flex: 0 0 auto;
+	color: var(--wp--preset--color--foreground);
+}
+
+/* Раскрытый пункт: у "+" исчезает вертикальный штрих — остаётся "−"
+   (в макете раскрытого состояния, node 30:2, именно минус, а не крестик). */
+.product-accordion__item[open] .product-accordion__icon-v {
+	opacity: 0;
+}
+
+.product-accordion__body {
+	padding-bottom: 12px;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--foreground);
+}
+
+.product-accordion__body p {
+	margin: 0;
+}
+
+.product-accordion__body strong {
+	font-weight: 600;
+}
+
+/* ---------- "Вам может понравиться" (Figma 30:185…30:243) ---------- */
+
+/* Отступ от блока товара — обычный section-gap темы: в макете низ
+   аккордеонов 720 → заголовок 860 (desktop) и 1054 → 1174 (mobile),
+   то есть ровно 140/120px, как между секциями Главной. */
+/* Селектор перебивает `.woocommerce div.product .related.products
+   {margin-top:5em}` из woocommerce-blocktheme.css — у неё 4 класса. */
+.woocommerce .product-page div.product .related.related-carousel {
+	margin-top: var(--wp--custom--section-gap--default, 140px);
+}
+
+/* Ряд карусели на desktop: заголовок над первой карточкой, под ним
+   [стрелка] [лента] [стрелка] — одной центрированной сеткой во всю ширину
+   экрана (уточнение заказчика 2026-09-11).
+
+   Зачем полная ширина: в Figma нарисованы ровно три карточки
+   (360×3 + 20×2 = 1120 — впритык по контентной колонке), прокручивать там
+   нечего. Теперь лента не ограничена колонкой, а стрелки держатся не за
+   края страницы, а за края САМОЙ ленты: когда карточек мало и они не
+   занимают экран, весь ряд центрируется вместе со стрелками и заголовком;
+   когда много — лента разворачивается на доступную ширину и прокручивается.
+
+   Приём "выйти из центрированного родителя на всю ширину экрана"
+   (left:50% + 100vw + margin-left:-50vw) — тот же, что у .faq и
+   .balance-banner в theme.css. Боковой паддинг 40px — общая контентная
+   сетка, чтобы карточки не липли к краю экрана.
+
+   Сетка, а не flex: колонок ровно три (стрелка / лента / стрелка), и
+   заголовку нужно попасть в строку выше ровно над колонкой ленты —
+   во flex это выражается только лишней обёрткой. justify-content:center
+   центрирует всю тройку колонок, когда они уже доступной ширины.
+   minmax(0, auto) у средней колонки разрешает ленте сжиматься ниже своего
+   содержимого — иначе она бы всегда была шириной во все карточки. */
+.related-carousel__stage {
+	position: relative;
+	left: 50%;
+	width: 100vw;
+	margin-left: -50vw;
+	display: grid;
+	grid-template-columns: auto minmax(0, auto) auto;
+	justify-content: center;
+	align-items: center;
+	row-gap: 30px;
+	padding-inline: 40px;
+}
+
+.related-carousel__title {
+	grid-column: 2;
+	grid-row: 1;
+	justify-self: start;
+	margin: 0;
+}
+
+/* display:contents убирает обёртку из раскладки, чтобы обе кнопки стали
+   прямыми элементами сетки. На mobile обёртка снова становится обычной
+   строкой над лентой (см. медиазапрос). */
+.related-carousel__nav {
+	display: contents;
+}
+
+/* Отрицательный margin сажает стрелку центром ровно на край ленты — как в
+   макете: стрелка 26…53 при первой карточке от 40 (node 30:240/30:243). */
+.related-carousel__arrow {
+	grid-row: 2;
+	z-index: 1;
+}
+
+.related-carousel__arrow.carousel-arrow--prev {
+	grid-column: 1;
+	margin-right: -13.5px;
+}
+
+.related-carousel__arrow.carousel-arrow--next {
+	grid-column: 3;
+	margin-left: -13.5px;
+}
+
+/* Лента: карточки 360px в ряд с зазором 20px. Своей ширины не задаёт —
+   её даёт колонка сетки выше: при малом числе карточек колонка равна их
+   сумме (и ряд центрируется), при большом сжимается до доступного места и
+   лента начинает прокручиваться.
+   scrollbar скрыт: в макете его нет, прокрутка — стрелками и свайпом. */
+.related-carousel__track {
+	grid-column: 2;
+	grid-row: 2;
+	min-width: 0;
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: 360px;
+	gap: 20px;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scrollbar-width: none;
+}
+
+.related-carousel__track::-webkit-scrollbar {
+	display: none;
+}
+
+.related-carousel__track > .device-card {
+	scroll-snap-align: start;
 }
 
 /* ---------- Mini-cart (header) ---------- */
 
-.wc-block-mini-cart__button {
-	background: transparent;
-	border: none;
-}
-
-.wc-block-mini-cart__badge {
-	background: var(--wp--preset--color--accent);
-	color: var(--wp--preset--color--accent-contrast);
+/* Аудит 2026-09-07: подозрение на источник "чёрного квадрата" в шапке
+   (скриншот пользователя, Главная) — плагин WooCommerce сам за собой
+   тянет wc-block-components-drawer__screen-overlay (затемняющая подложка
+   на весь экран для выезжающей корзины). В его CSS
+   (wp-content/plugins/woocommerce/assets/client/blocks/mini-cart.css)
+   БАЗОВОЕ состояние — `opacity:1` (видимо!), скрывается только классом
+   `--is-hidden`/`--with-slide-out`, который добавляет React уже ПОСЛЕ
+   монтирования. Если JS не успел смонтироваться (или не загрузился) —
+   подложка на секунду/постоянно видна поверх страницы. Base-состояние
+   переопределяем сами на "скрыто" — открытие корзины по клику всё равно
+   работает через анимационные классы (`--with-slide-in` и т.д.), у них
+   своя более специфичная анимация opacity, this override её не блокирует. */
+.wc-block-components-drawer__screen-overlay {
+	opacity: 0;
+	pointer-events: none;
 }
 
 /* ---------- Product Collection cards (каталог на Главной) ---------- */
@@ -71,36 +526,977 @@
 	padding: 20px;
 }
 
-.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-image img {
-	border-radius: var(--wp--custom--radius--card);
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-image {
+	position: relative;
 }
 
-/* ---------- Toast: "Товар добавлен в корзину" ---------- */
-
-.whoopstore-toast {
-	position: fixed;
-	right: 20px;
-	bottom: 20px;
-	z-index: 100;
-	background: var(--wp--preset--color--surface);
-	color: var(--wp--preset--color--foreground);
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-image img {
 	border-radius: var(--wp--custom--radius--card);
-	padding: 16px 24px;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+}
+
+/* Бейдж "Распродажа" — текст переводится фильтром gettext (см.
+   inc/woocommerce/template-hooks.php), здесь только оформление.
+   Правка 2026-09-10: оформление пилюли приведено к тому же, что у
+   .device-card__badge (theme.css) — 14px текст, паддинг 12/20, скругление
+   20px, по узлу Figma 1:66/1:67. Смещение 0: позиционированный родитель
+   здесь — обёртка фото, начинающаяся уже после паддинга карточки (20px),
+   так что бейдж отстоит от края карточки на те же 20px, что в макете. */
+.wp-block-woocommerce-product-collection .wc-block-components-product-sale-badge {
+	position: absolute;
+	top: 0;
+	right: 0;
+	background: rgba(15, 18, 23, 0.6);
+	color: var(--wp--preset--color--foreground);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.2;
+	padding: 12px 20px;
+	border-radius: var(--wp--custom--radius--button);
+	text-transform: none;
+}
+
+/* Цена: старая — приглушённая зачёркнутая, новая — яркая и жирная. */
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-price del {
+	color: var(--wp--preset--color--foreground-faint);
+	text-decoration: line-through;
+	font-weight: 400;
+	font-size: 0.7em;
+	margin-right: 6px;
+}
+
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-price ins {
+	color: var(--wp--preset--color--foreground);
+	text-decoration: none;
+	font-weight: 600;
+}
+
+/* Кнопка "Купить" в карточке — компактная пилюля, не на всю ширину. */
+.wp-block-woocommerce-product-collection .wp-block-woocommerce-product-button {
+	display: flex;
+}
+
+.wp-block-woocommerce-product-collection .wc-block-components-product-button__button {
+	width: auto;
+	align-self: flex-start;
+}
+
+/* ---------- Степпер "В корзине: − 1 +" (Figma 30:412…30:419) ---------- */
+
+/* Белая пилюля 198×40 r20 на месте кнопки "Добавить в корзину".
+   Ширина набирается из макетных величин: 20 (паддинг) + надпись + 20 +
+   25 (−) + 26 (число) + 25 (+) + 20 = 198. */
+.cart-stepper {
+	display: inline-flex;
+	align-items: center;
+	height: 40px;
+	padding: 0 20px;
+	border-radius: var(--wp--custom--radius--button);
+	background: #ffffff;
+	color: var(--wp--preset--color--accent-contrast);
 	font-size: var(--wp--preset--font-size--sm);
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	line-height: 1.2;
+}
+
+.cart-stepper__label {
+	margin-right: 20px;
+}
+
+.cart-stepper__value {
+	width: 26px;
+	text-align: center;
+	font-weight: 500;
+}
+
+/* Круглые кнопки 25×25 на светлой подложке — тот же токен, что и у плашек
+   на светлых карточках темы (rgba(15,18,23,0.05)). */
+.cart-stepper__button {
+	position: relative;
+	width: 25px;
+	height: 25px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: var(--wp--preset--color--on-light-subtle);
+	color: var(--wp--preset--color--accent-contrast);
+	cursor: pointer;
+}
+
+.cart-stepper__button:hover {
+	background: rgba(15, 18, 23, 0.1);
+}
+
+/* Знаки "−" и "+" — штрихи 9×1 из макета (node 30:418/30:419). */
+.cart-stepper__button::before,
+.cart-stepper__button--plus::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 9px;
+	height: 1px;
+	background: currentColor;
+	transform: translate(-50%, -50%);
+}
+
+.cart-stepper__button--plus::after {
+	transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* Пока запрос в Store API не вернулся — кнопка не должна выглядеть живой. */
+.single_add_to_cart_button.is-busy {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* ---------- Тост "Товар добавлен в Корзину" (Figma 30:435) ---------- */
+
+/* 360×65 r20, фон .surface с обводкой rgba(255,255,255,0.1), текст 14px
+   слева с паддингом 24px. Отступ от краёв экрана — 40px справа и 30px
+   снизу (правый край тоста 1160 при холсте 1200, низ 690 при 720). */
+.cart-toast {
+	position: fixed;
+	right: 40px;
+	bottom: 30px;
+	z-index: 120;
+	display: flex;
+	align-items: center;
+	width: 360px;
+	min-height: 65px;
+	padding: 24px;
+	background: var(--wp--preset--color--surface);
+	border: 1px solid var(--wp--preset--color--surface-translucent);
+	border-radius: var(--wp--custom--radius--card);
+	color: var(--wp--preset--color--foreground-muted);
+	font-size: var(--wp--preset--font-size--sm);
+	line-height: 1.2;
 	opacity: 0;
 	transform: translateY(12px);
 	transition: opacity 0.2s ease, transform 0.2s ease;
 	pointer-events: none;
 }
 
-.whoopstore-toast.is-visible {
+.cart-toast.is-visible {
 	opacity: 1;
 	transform: translateY(0);
 }
 
+/* ---------- Общие элементы корзины/чекаута (светлая панель) ---------- */
+
+/* Плашка-подложка на белом: строка товара, "Корзина пока пуста", "Номер
+   заказа". Один класс — в макете это один и тот же элемент
+   (rgba(15,18,23,0.05), r20 desktop / r10 mobile), меняется только
+   содержимое. */
+.cart-plate {
+	margin: 0;
+	padding: 24px;
+	border-radius: var(--wp--custom--radius--card);
+	background: var(--wp--preset--color--on-light-subtle);
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+/* Кнопка на светлой панели: 50px, скругление 100 — форма, которой нет ни у
+   одного из четырёх общих стилей кнопки темы (те — пилюли 40px r20 на
+   тёмном фоне, см. раздел "Buttons" в theme.css). Заливки берём из тех же
+   токенов: primary — акцент, ghost — прозрачная с обводкой #e8e8e8
+   (единственное место в макете с этой обводкой — светлая панель корзины). */
+.cart-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 50px;
+	padding: 0 20px;
+	border: none;
+	border-radius: 100px;
+	font-family: inherit;
+	font-size: var(--wp--preset--font-size--sm);
+	line-height: 1.2;
+	cursor: pointer;
+	transition: background-color 0.15s ease, filter 0.15s ease;
+}
+
+.cart-button--primary {
+	background: var(--wp--preset--color--accent);
+	color: var(--wp--preset--color--accent-contrast);
+}
+
+.cart-button--primary:hover {
+	filter: brightness(0.92);
+}
+
+.cart-button--ghost {
+	background: transparent;
+	border: 1px solid #e8e8e8;
+	color: var(--wp--preset--color--accent-contrast);
+}
+
+.cart-button--ghost:hover {
+	background: var(--wp--preset--color--on-light-subtle);
+}
+
+.cart-button + .cart-button {
+	margin-top: 12px;
+}
+
+/* Крестик закрытия — в макете это Group 311 (16×16, повёрнутая на 45°),
+   тот же элемент у drawer'а и у модалки. */
+.cart-drawer__close {
+	position: absolute;
+	top: 26px;
+	right: 40px;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+	z-index: 1;
+}
+
+.cart-drawer__close::before,
+.cart-drawer__close::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 16px;
+	height: 1.5px;
+	background: var(--wp--preset--color--on-light);
+}
+
+.cart-drawer__close::before {
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cart-drawer__close::after {
+	transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* ---------- Drawer корзины (Figma 30:438 / 30:841) ---------- */
+
+/* Оверлей на всю страницу; на mobile его в макете нет — там drawer
+   занимает весь экран (см. медиазапрос). */
+.cart-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 200;
+	background: rgba(27, 30, 35, 0.4);
+	backdrop-filter: blur(2px);
+}
+
+/* Белая панель 495px справа во всю высоту. Паддинги из координат макета:
+   заголовок y=70, содержимое 745…1160 при панели 705…1200 → 40px по бокам
+   и 40px снизу. */
+.cart-drawer {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 210;
+	width: 495px;
+	max-width: 100%;
+	/* overflow-x задан явно: если у элемента одна ось не visible, вторая по
+	   спецификации сама становится auto — то есть от одного overflow-y:auto
+	   панель получала и горизонтальную полосу прокрутки. Настоящая причина
+	   переполнения устранена ниже (min-width у элементов сетки), это —
+	   страховка, чтобы полоса не вернулась от случайной длинной строки. */
+	overflow-x: hidden;
+	overflow-y: auto;
+	padding: 70px 40px 40px;
+	background: #ffffff;
+	color: var(--wp--preset--color--on-light);
+}
+
+body.has-cart-drawer {
+	overflow: hidden;
+}
+
+.cart-drawer__view {
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
+}
+
+.cart-drawer__head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+/* 20px Medium — тот же кегль, что и .card-heading темы, но на светлой
+   панели (.card-heading--light). Отдельного класса не заводим. */
+.cart-drawer__title {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 500;
+	line-height: 1.1;
+	letter-spacing: -0.2px;
+	color: var(--wp--preset--color--on-light);
+}
+
+.cart-drawer__clear {
+	padding: 0;
+	border: none;
+	background: none;
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.2;
+	color: rgba(37, 40, 40, 0.2);
+	cursor: pointer;
+}
+
+.cart-drawer__clear:hover {
+	color: rgba(37, 40, 40, 0.5);
+}
+
+/* Заголовок 70…92 → первая плашка 116 (node 30:595). */
+.cart-drawer__body {
+	flex: 1;
+	margin-top: 24px;
+}
+
+.cart-item + .cart-item {
+	margin-top: 12px;
+}
+
+/* Плашка товара 415×124: слева название (248px по макету) и вариация,
+   справа степпер. */
+.cart-item {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 24px;
+	min-height: 124px;
+}
+
+.cart-item__info {
+	flex: 0 1 248px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.cart-item__title {
+	margin: 0;
+	font-weight: 500;
+}
+
+.cart-item__meta {
+	margin: 12px 0 0;
+}
+
+/* Степпер внутри плашки — тот же компонент, что и на странице товара,
+   но без белой пилюли и без надписи "В корзине:" (node 30:598). */
+.cart-stepper--plain {
+	height: auto;
+	padding: 0;
+	background: transparent;
+}
+
+.cart-drawer__footer {
+	margin-top: auto;
+	padding-top: 24px;
+}
+
+.cart-total {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0 0 24px;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.cart-total__value {
+	font-weight: 500;
+}
+
+/* ---------- Чекаут "Ваш заказ" (Figma 30:619 / 30:1759) ---------- */
+
+.checkout-form {
+	display: flex;
+	flex-direction: column;
+	margin-top: 24px;
+}
+
+/* Состав заказа между двумя разделителями (Line139, node 30:781/30:782). */
+.checkout-form__summary {
+	padding: 12px 0;
+	border-top: 1px solid rgba(15, 18, 23, 0.1);
+	border-bottom: 1px solid rgba(15, 18, 23, 0.1);
+}
+
+.checkout-summary + .checkout-summary {
+	margin-top: 12px;
+}
+
+.checkout-summary__row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20px;
+}
+
+.checkout-summary__name {
+	flex: 0 1 250px;
+	min-width: 0;
+	/* Название товара — длинная строка с непереносимыми кусками вроде
+	   "Chestnut/Cream"; без этого одно такое слово способно расширить
+	   строку шире панели. */
+	overflow-wrap: anywhere;
+	margin: 0;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-summary__price {
+	margin: 0;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.2;
+	white-space: nowrap;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-summary__meta {
+	margin: 13px 0 0;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-form__label {
+	margin: 40px 0 12px;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-form__label--shipping {
+	margin-bottom: 6px;
+}
+
+/* Поле ввода: 50px, r10, заливка rgba(15,18,23,0.05), паддинг 24px
+   (плейсхолдер x=769 при поле x=745). */
+/* min-width:0 обязателен: поле лежит в колонке grid'а шириной 1fr, а это
+   minmax(auto, 1fr) — минимум колонки равен min-content вложенного элемента.
+   У <input> min-content — это его браузерная ширина по умолчанию (size=20,
+   ~150px), плюс 48px паддингов поля, то есть колонка не могла стать уже
+   ~200px. На desktop пара "Дом / Квартира-офис" (2 × 204.5) выходила за
+   415px панели, на mobile (2 × 157) — тем более; отсюда и горизонтальная
+   прокрутка. min-width:0 снимает этот автоминимум, дальше поле сжимается
+   штатно, а input внутри — за счёт своего min-width:0 ниже. */
+.checkout-field {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	height: 50px;
+	padding: 0 24px;
+	border-radius: 10px;
+	background: var(--wp--preset--color--on-light-subtle);
+}
+
+.checkout-field + .checkout-field {
+	margin-top: 6px;
+}
+
+.checkout-field__input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	border: none;
+	background: none;
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light);
+}
+
+.checkout-field__input:focus {
+	outline: none;
+}
+
+.checkout-field__input::placeholder {
+	color: var(--wp--preset--color--on-light-faint);
+}
+
+/* Флаг РФ 22×14 нарисован тремя полосами, а не картинкой: в макете это
+   растровый ассет, тянуть который в репозиторий незачем (правило 9). */
+.checkout-field__flag {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 14px;
+	border-radius: 2px;
+	background: linear-gradient(#ffffff 0 33.33%, #0039a6 33.33% 66.66%, #d52b1e 66.66% 100%);
+}
+
+.checkout-field__caret {
+	flex: 0 0 auto;
+	width: 0;
+	height: 0;
+	border-left: 3px solid transparent;
+	border-right: 3px solid transparent;
+	border-top: 4px solid var(--wp--preset--color--on-light);
+}
+
+.checkout-field__prefix {
+	flex: 0 0 auto;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light);
+}
+
+/* Способы доставки: плитки 204×94 сеткой 2×2, активная — акцентная. */
+.checkout-shipping {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 7px 7px;
+}
+
+.checkout-shipping__option {
+	display: block;
+	min-width: 0;
+	cursor: pointer;
+}
+
+.checkout-shipping__option input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.checkout-shipping__tile {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 94px;
+	height: 100%;
+	padding: 20px;
+	border-radius: 10px;
+	background: #f3f3f3;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-shipping__option input:checked + .checkout-shipping__tile {
+	background: var(--wp--preset--color--accent);
+}
+
+.checkout-shipping__option input:focus-visible + .checkout-shipping__tile {
+	outline: 2px solid var(--wp--preset--color--accent);
+	outline-offset: 2px;
+}
+
+.checkout-shipping__title {
+	font-weight: 500;
+}
+
+/* Адрес: "Дом" и "Квартира / офис" — половинной ширины в одной строке
+   (node 30:799/30:802), остальные поля на всю ширину. */
+.checkout-form__address {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
+	margin-top: 24px;
+}
+
+.checkout-form__address .checkout-field {
+	grid-column: span 2;
+	margin-top: 0;
+}
+
+.checkout-form__address .checkout-field--half {
+	grid-column: span 1;
+}
+
+.checkout-consent {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 24px;
+	cursor: pointer;
+}
+
+.checkout-consent__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.checkout-consent__box {
+	flex: 0 0 auto;
+	position: relative;
+	width: 20px;
+	height: 20px;
+	border: 1px solid var(--wp--preset--color--on-light-faint);
+}
+
+.checkout-consent__input:checked + .checkout-consent__box::after {
+	content: "";
+	position: absolute;
+	left: 6px;
+	top: 2px;
+	width: 5px;
+	height: 10px;
+	border-right: 2px solid var(--wp--preset--color--on-light);
+	border-bottom: 2px solid var(--wp--preset--color--on-light);
+	transform: rotate(45deg);
+}
+
+.checkout-consent__text {
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-faint);
+}
+
+.checkout-totals {
+	margin-top: 40px;
+}
+
+.checkout-totals__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.2;
+	color: var(--wp--preset--color--on-light-muted);
+}
+
+.checkout-totals__row + .checkout-totals__row {
+	margin-top: 6px;
+}
+
+.checkout-totals__row--grand {
+	margin-top: 24px;
+	font-size: 18px;
+	font-weight: 500;
+}
+
+.checkout-form .cart-button {
+	margin-top: 14px;
+}
+
+/* ---------- Модалка "Заказ оформлен" (Figma 30:1006 / 30:1564) ---------- */
+
+.order-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 220;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(27, 30, 35, 0.4);
+	backdrop-filter: blur(2px);
+}
+
+/* 550×413 r20; вертикальные паддинги — из координат макета (заголовок
+   на 90px ниже верха окна, низ кнопки на 80px выше низа). */
+.order-modal__window {
+	position: relative;
+	width: 550px;
+	max-width: 100%;
+	padding: 90px 40px 80px;
+	border-radius: var(--wp--custom--radius--card);
+	background: #ffffff;
+	color: var(--wp--preset--color--on-light);
+	text-align: center;
+}
+
+.order-modal__close {
+	top: 40px;
+	right: 40px;
+}
+
+/* Кнопка "Продолжить покупки" в модалке — тоже .order-modal__close
+   (закрывает окно), но это обычная кнопка в потоке, а не крестик. */
+.cart-button.order-modal__close {
+	position: static;
+	width: 100%;
+	height: 50px;
+	margin-top: 8px;
+}
+
+.cart-button.order-modal__close::before,
+.cart-button.order-modal__close::after {
+	content: none;
+}
+
+.order-modal__title {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 500;
+	line-height: 1.1;
+	letter-spacing: -0.2px;
+}
+
+.order-modal__text {
+	max-width: 341px;
+	margin: 12px auto 0;
+	font-size: 13px;
+	line-height: 1.2;
+	color: rgba(15, 18, 23, 0.8);
+}
+
+.order-modal__number {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-top: 26px;
+	min-height: 64px;
+	font-weight: 500;
+	text-align: left;
+}
+
 @media (max-width: 781px) {
-	.product-page__gallery {
+	/* ---------- Страница товара: mobile (Figma 30:1180) ---------- */
+
+	/* Та же арифметика, что у .page-head на mobile (theme.css): низ шапки 64 +
+	   33 → верх иконки крошки y=99 из макета. Боковые 20px — общая мобильная
+	   сетка темы. */
+	.product-page {
+		padding: 33px 20px 0;
+	}
+
+	/* Крошки в одну строку: в макете (node 30:1206/30:1208) промежуточная
+	   крошка обрезается до "Whoop ..." с градиентным фейдом. Тот же эффект
+	   штатным text-overflow — плюс обрезаем и текущую крошку: в макете это
+	   короткое "Chestnut/Cream with Titanium", а реальное имя товара
+	   длиннее и иначе переносило бы строку. */
+	.product-page .page-head__crumbs {
+		flex-wrap: nowrap;
+		min-width: 0;
+	}
+
+	.product-page .page-head__crumb-link,
+	.product-page .page-head__crumb-current {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.product-page .page-head__crumb-link {
+		flex: 0 1 auto;
+		max-width: 80px;
+	}
+
+	.product-page .page-head__crumb-current {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	/* Фото → заголовок: 527 − 497 = 30px по координатам макета. */
+	.product-page__layout {
+		display: block;
+		margin-top: 30px;
+	}
+
+	/* Колонка данных на mobile — во всю ширину контента, а не 455px. */
+	.product-page__summary {
+		flex: none;
+		max-width: none;
+	}
+
+	/* Галерея на mobile — во всю ширину экрана (в макете фото начинается от
+	   x=0), поэтому выходим за боковые 20px страницы. */
+	.product-page .woocommerce-product-gallery {
+		display: block;
+		margin-inline: -20px;
+	}
+
+	.product-page .woocommerce-product-gallery > .woocommerce-product-gallery__wrapper,
+	.product-page .woocommerce-product-gallery > .flex-viewport {
+		flex: none;
+		max-width: none;
+	}
+
+	/* Фото 360×356 из макета — те же пропорции, что 513×508 на desktop. */
+	.product-page .woocommerce-product-gallery__image img {
+		aspect-ratio: 360 / 356;
+	}
+
+	/* Колонки миниатюр на mobile в макете нет — переключение свайпом и точками. */
+	.woocommerce .product-page div.product div.images .flex-control-thumbs {
+		display: none;
+	}
+
+	/* Лупа — те же 12px от угла фото, но фото теперь от края экрана. */
+	.woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger {
+		left: 12px;
+	}
+
+	.product-gallery__dots {
+		left: 0;
+		width: 100%;
+	}
+
+	/* ---------- "Вам может понравиться": mobile (Figma 30:1248…30:1274) ---------- */
+
+	/* На mobile ряд не центрируется и не растягивается на всю ширину экрана:
+	   по макету (node 30:1271/30:1274) стрелки стоят НАД лентой и прижаты к
+	   левому краю (x=20 и x=54 при ширине 27 → зазор 7px), а сама лента
+	   начинается от левого края контента. Поэтому desktop-сетку (full-bleed
+	   + три колонки) здесь снимаем целиком: в обычном потоке элементы и так
+	   идут в нужном порядке — заголовок, строка стрелок, лента. */
+	.related-carousel__stage {
 		position: static;
+		left: auto;
+		width: auto;
+		margin-left: 0;
+		display: block;
+		padding-inline: 0;
+	}
+
+	/* Заголовок 1174 → стрелки 1206 по координатам макета. */
+	.related-carousel__title {
+		margin-bottom: 12px;
+	}
+
+	.related-carousel__nav {
+		display: flex;
+		gap: 7px;
+		margin-bottom: 25px;
+	}
+
+	.related-carousel__arrow.carousel-arrow--prev,
+	.related-carousel__arrow.carousel-arrow--next {
+		margin-inline: 0;
+	}
+
+	/* Карточка 320px, зазор 12px, следующая выглядывает за правый край
+	   экрана — поэтому лента выходит за боковой паддинг страницы вправо. */
+	.related-carousel__track {
+		grid-auto-columns: 320px;
+		gap: 12px;
+		margin-right: -20px;
+	}
+
+	/* ---------- Корзина: mobile ---------- */
+
+	/* Тост во всю ширину контента: 320px при экране 360 (node 30:1562). */
+	.cart-toast {
+		left: 20px;
+		right: 20px;
+		width: auto;
+	}
+
+	/* Кнопка-корзина на mobile в макете карточки товара лежит НЕ в строке
+	   шапки (там бургер), а плавает над правым верхним углом фото — зеркально
+	   лупе слева (node 30:1554: x=300, y=153 при фото от y=141). Шапка —
+	   position:relative и начинается с нуля страницы, поэтому абсолютное
+	   top:153px попадает ровно в макетную точку. Правило ограничено страницей
+	   товара: для остальных страниц такого кадра в Figma нет, и там кнопка
+	   остаётся обычным элементом строки шапки. */
+	.single-product .site-header__cart {
+		position: absolute;
+		top: 153px;
+		right: 20px;
+		z-index: 2;
+	}
+
+	/* ---------- Drawer/чекаут: mobile (Figma 30:1719 / 30:1747 / 30:1759) ---------- */
+
+	/* На mobile drawer — сплошной белый экран без затемняющей подложки. */
+	.cart-overlay {
+		display: none;
+	}
+
+	/* Заголовок y=64, боковые 20, низ 20 (кнопка 591…641 при экране 661). */
+	.cart-drawer {
+		width: 100%;
+		padding: 64px 20px 20px;
+	}
+
+	.cart-drawer__close {
+		top: 20px;
+		right: 20px;
+	}
+
+	.cart-drawer__title,
+	.order-modal__title {
+		font-size: 18px;
+		letter-spacing: -0.18px;
+	}
+
+	/* Плашки на mobile со скруглением 10 вместо 20 (тот же приём, что уже
+	   применён у .no-display__card/.help-block__item в theme.css). */
+	.cart-plate {
+		border-radius: 10px;
+	}
+
+	/* Плашка товара 320×173: степпер уходит под текст, а не вправо. */
+	.cart-item {
+		display: block;
+		min-height: 173px;
+	}
+
+	.cart-item .cart-stepper--plain {
+		margin-top: 24px;
+	}
+
+	.cart-drawer__footer {
+		padding-top: 12px;
+	}
+
+	.cart-total {
+		margin-bottom: 12px;
+	}
+
+	/* Плитки доставки на mobile — четыре подряд, 320×78. */
+	.checkout-shipping {
+		grid-template-columns: 1fr;
+		gap: 6px;
+	}
+
+	.checkout-shipping__tile {
+		min-height: 78px;
+	}
+
+	.checkout-totals {
+		margin-top: 24px;
+	}
+
+	/* ---------- Модалка "Заказ оформлен": mobile (Figma 30:1706) ---------- */
+
+	/* Окно 320×398, паддинги 70/20 из координат макета. */
+	.order-modal__window {
+		width: 320px;
+		padding: 70px 20px;
+	}
+
+	.order-modal__close {
+		top: 30px;
+		right: 20px;
+	}
+
+	.order-modal__text {
+		max-width: 249px;
+		margin-top: 6px;
+	}
+
+	.order-modal__number {
+		min-height: 56px;
+	}
+
+	.cart-button.order-modal__close {
+		margin-top: 6px;
 	}
 }
