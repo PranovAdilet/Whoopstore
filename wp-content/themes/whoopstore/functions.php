@@ -20,3 +20,8 @@ require_once get_theme_file_path( 'inc/woocommerce/single-product.php' );
 require_once get_theme_file_path( 'inc/woocommerce/product-accordions.php' );
 require_once get_theme_file_path( 'inc/woocommerce/cart-ui.php' );
 require_once get_theme_file_path( 'inc/woocommerce/redirects.php' );
+
+// Динамические блоки темы. Подключаются последними: их render использует
+// функции из inc/ выше (крошки, разделы каталога), а регистрация скриптов —
+// whoopstore_asset_version() из inc/setup.php.
+require_once get_theme_file_path( 'inc/blocks.php' );

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "whoopstore/breadcrumbs",
+	"title": "Хлебные крошки",
+	"category": "theme",
+	"icon": "admin-links",
+	"description": "Строка хлебных крошек подстраницы: иконка «Главная», разделитель и название текущего раздела.",
+	"textdomain": "whoopstore",
+	"attributes": {
+		"label": {
+			"type": "string",
+			"default": "",
+			"role": "content"
+		}
+	},
+	"supports": {
+		"html": false,
+		"className": false,
+		"customClassName": false,
+		"anchor": false,
+		"align": false,
+		"spacing": false,
+		"typography": false,
+		"color": false
+	},
+	"editorScript": "whoopstore-block-breadcrumbs",
+	"render": "file:./render.php"
+}

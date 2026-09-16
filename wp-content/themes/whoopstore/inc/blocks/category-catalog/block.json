@@ -1,0 +1,31 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "whoopstore/category-catalog",
+	"title": "Каталог по категориям",
+	"category": "theme",
+	"icon": "grid-view",
+	"description": "Разделы каталога: заголовок раздела — название категории WooCommerce, карточки — её товары. Сохраняются только slug'и категорий, вёрстка собирается на сервере при каждом запросе.",
+	"textdomain": "whoopstore",
+	"attributes": {
+		"categories": {
+			"type": "array",
+			"default": [],
+			"items": {
+				"type": "string"
+			}
+		}
+	},
+	"supports": {
+		"html": false,
+		"className": false,
+		"customClassName": false,
+		"anchor": false,
+		"align": false,
+		"spacing": false,
+		"typography": false,
+		"color": false
+	},
+	"editorScript": "whoopstore-block-category-catalog",
+	"render": "file:./render.php"
+}
