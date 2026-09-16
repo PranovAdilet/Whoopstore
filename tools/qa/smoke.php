@@ -30,6 +30,7 @@ $out  = __DIR__ . '/out';
 $keep  = in_array( '--keep', $argv, true );
 $links = in_array( '--links', $argv, true );
 
+require __DIR__ . '/lib.php';
 require $root . '/wp-load.php';
 
 /**
@@ -183,20 +184,6 @@ foreach ( whoopstore_qa_urls() as $label => $url ) {
 	}
 
 	$rows[] = [ $label, $uri, $bytes, $is404 ? '404' : ( '' !== $redirect ? '→ ' . $redirect : 'ok' ), $notices ];
-}
-
-/**
- * Дополняет строку пробелами по числу символов, а не байтов (printf считает
- * байты, и колонки с кириллицей разъезжаются).
- *
- * @param string $text  Текст.
- * @param int    $width Ширина колонки.
- * @return string
- */
-function whoopstore_qa_pad( $text, $width ) {
-	$text = mb_strimwidth( $text, 0, $width, '…' );
-
-	return $text . str_repeat( ' ', max( 0, $width - mb_strlen( $text ) ) );
 }
 
 echo whoopstore_qa_pad( 'Страница', 20 ) . ' ' . whoopstore_qa_pad( 'Адрес', 44 ) . ' ' . whoopstore_qa_pad( 'Байт', 9 ) . ' ' . whoopstore_qa_pad( 'Ответ', 40 ) . " Замечаний\n";
