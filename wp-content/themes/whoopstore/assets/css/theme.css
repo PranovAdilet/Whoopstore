@@ -2075,6 +2075,18 @@ a {
 	margin-left: 0;
 }
 
+/* Кадр ленты «Персонализируйте свой WHOOP» стал ссылкой на товар
+   (2026-09-16). Размер, нахлёст и скругление остались на самом
+   .straps-carousel__photo, картинка внутри просто заполняет его — рендер тот
+   же, что был у одиночного <img>. */
+.straps-carousel__photo > img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: inherit;
+}
+
 /* Правка 2026-09-08: .straps-carousel--compact .straps-carousel__media
    (круговой веерный нахлёст) и .straps-carousel__deco-photo были мёртвым
    кодом — компакт-разметка (straps-promo.php) уже не использует .media/
@@ -3703,7 +3715,10 @@ p.contact-block__legal {
 
 /* aspect-ratio вместо фиксированной высоты — при ширине окна меньше 1200px
    плитка ужимается пропорционально, а не обрезает фото. */
+/* display:block нужен, когда плитка — ссылка на раздел каталога: у строчного
+   <a> не работает aspect-ratio. Для <div> ничего не меняет. */
 .tile-card {
+	display: block;
 	position: relative;
 	aspect-ratio: 360 / 300;
 	border-radius: var(--wp--custom--radius--card);

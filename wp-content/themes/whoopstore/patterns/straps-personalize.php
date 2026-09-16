@@ -3,30 +3,29 @@
  * Title: Personalize straps
  * Slug: whoopstore/straps-personalize
  *
- * Первый проход по всей Главной (2026-09-07), источник — Figma MCP get_metadata
- * (node 1:3464, "Мобилка") — см. accessories-grid.php.
+ * Секция «Персонализируйте свой WHOOP» (Figma: raw-дамп
+ * homepage-desktop.partial-2.code.tsx.txt, node 1:448/1:449/1:432/1:452/1:441 +
+ * homepage-mobile.code.tsx.txt, 1:3648-1:3675) — оверлей без фона карточки:
+ *  - заголовок и описание слева сверху, обычным потоком;
+ *  - лента из 7 фото на всю ширину с уходом за края и fade по краям;
+ *  - плашка с названием ремешка (1:449/1:451) — над лентой;
+ *  - переключатель Whoop 5.0/MG (1:452) — над нижним краем ленты;
+ *  - стрелки (1:441) — сверху справа на desktop, сверху слева на mobile.
  *
- * Правка 2026-09-09 (визуальная сверка со скриншотом пользователя, Figma vs
- * stage): секция была простым вертикальным стеком "фото сверху → текст снизу"
- * внутри серой карточки — в Figma (raw-дамп homepage-desktop.partial-2.code.tsx.txt,
- * node 1:448/1:449/1:432/1:452/1:441, + homepage-mobile.code.tsx.txt узлы
- * 1:3648-1:3675) это оверлей без фона карточки:
- *  - заголовок + описание — слева сверху, обычным потоком;
- *  - лента из 7 фото — на всю ширину карточки с уходом за края (bleed) и
- *    fade-затуханием по краям вместо видимого скроллбара;
- *  - бейдж "CoreKnit Color: Royal Blue" (1:449/1:451) — плавающая тёмная
- *    карточка 151×70 (144×68 на mobile), лежит НАД лентой фото, а не текстом
- *    под описанием;
- *  - переключатель Whoop 5.0/MG (1:452) — НАД нижним краем ленты, по центру;
- *  - стрелки-навигация (1:441) — сверху справа на desktop, сверху слева на
- *    mobile (подтверждено обоими дампами, не опечатка) — чисто декоративные,
- *    как и переключатель (нет реальных данных под MG на этом этапе, см.
- *    комментарий у .toggle в theme.css).
- * Порядок кнопок переключателя тоже был перепутан: подтверждённый порядок на
- * desktop — "Whoop MG" (неактивная, слева) → "Whoop 5.0" (активная, справа) —
- * тот же порядок, что уже был верно сделан в соседней компактной секции
- * (straps-promo.php). Новая разметка — .straps-carousel--personalize в
- * theme.css.
+ * Правка 2026-09-16 (ТЗ: «ремешки листаются свайпом и кнопками; название
+ * выбранного ремешка — по центру»): лента стала интерактивной.
+ *  - Фото остаются кадрами из Figma (портретная фактура 873×1308 под слот
+ *    246×369). Фото товаров — квадратные предметные кадры на прозрачном фоне,
+ *    в этих слотах они обрезались бы и меняли вид секции; решение заказчика
+ *    2026-09-16 — кадры макета оставить, данные брать из товаров.
+ *  - Каждый кадр — ссылка на свой товар; соответствие «кадр → товар» идёт по
+ *    порядку категории (CoreKnit 5.0, затем ремешки на бицепс — ровно 7
+ *    товаров на 7 кадров). Это соответствие условное: кадры макета
+ *    обезличены, конкретный цвет на фото с товаром не сверялся.
+ *  - Плашка показывает семейство и цвет выбранного ремешка
+ *    (whoopstore_strap_badge_parts()), выбранным считается ближайший к центру
+ *    ленты — см. assets/js/straps-carousel.js.
+ * Свайп и прокрутка колесом остаются нативными (overflow-x у ленты).
  */
 
 $whoopstore_strap_photos = [
@@ -38,6 +37,18 @@ $whoopstore_strap_photos = [
 	'/wp-content/uploads/2026/09/strap-6.webp',
 	'/wp-content/uploads/2026/09/strap-7.webp',
 ];
+
+// Товары ленты: влагостойкие CoreKnit 5.0, затем ремешки на бицепс — то же
+// семейство CoreKnit, что и в плашке макета.
+$whoopstore_strap_products = array_merge(
+	whoopstore_category_products( 'coreknit-5-0' ),
+	whoopstore_category_products( 'coreknit-bicep' )
+);
+
+// Плашка при загрузке — первый ремешок ленты; дальше её ведёт скрипт.
+list( $whoopstore_badge_family, $whoopstore_badge_color ) = $whoopstore_strap_products
+	? whoopstore_strap_badge_parts( $whoopstore_strap_products[0]->get_name() )
+	: [ '', '' ];
 ?>
 <!-- wp:group {"className":"section-canvas","layout":{"type":"constrained"}} -->
 <div class="wp-block-group section-canvas">
@@ -58,21 +69,39 @@ $whoopstore_strap_photos = [
 		<!-- wp:html -->
 		<div class="straps-carousel__stage">
 
-			<div class="straps-carousel__nav" aria-hidden="true">
-				<span class="straps-carousel__arrow straps-carousel__arrow--prev"></span>
-				<span class="straps-carousel__arrow straps-carousel__arrow--next"></span>
+			<div class="straps-carousel__nav">
+				<?php /* Класс .carousel-arrow — общий стиль стрелки (он же у ленты
+				        «Вам может понравиться»), включая приглушение на краю ленты. */ ?>
+				<button type="button" class="carousel-arrow carousel-arrow--prev straps-carousel__arrow straps-carousel__arrow--prev" aria-label="Предыдущий ремешок"></button>
+				<button type="button" class="carousel-arrow carousel-arrow--next straps-carousel__arrow straps-carousel__arrow--next" aria-label="Следующий ремешок"></button>
 			</div>
 
 			<div class="straps-carousel__media">
-				<?php foreach ( $whoopstore_strap_photos as $photo ) : ?>
-					<img class="straps-carousel__photo" src="<?php echo esc_url( $photo ); ?>" alt="" loading="lazy" />
+				<?php foreach ( $whoopstore_strap_photos as $whoopstore_index => $whoopstore_photo ) : ?>
+					<?php
+					$whoopstore_strap = isset( $whoopstore_strap_products[ $whoopstore_index ] ) ? $whoopstore_strap_products[ $whoopstore_index ] : null;
+					list( $whoopstore_family, $whoopstore_color ) = $whoopstore_strap
+						? whoopstore_strap_badge_parts( $whoopstore_strap->get_name() )
+						: [ '', '' ];
+					?>
+					<?php if ( $whoopstore_strap ) : ?>
+						<a class="straps-carousel__photo" href="<?php echo esc_url( $whoopstore_strap->get_permalink() ); ?>" aria-label="<?php echo esc_attr( $whoopstore_strap->get_name() ); ?>" data-family="<?php echo esc_attr( $whoopstore_family ); ?>" data-color="<?php echo esc_attr( $whoopstore_color ); ?>">
+							<img src="<?php echo esc_url( $whoopstore_photo ); ?>" alt="" loading="lazy" />
+						</a>
+					<?php else : ?>
+						<?php /* Кадров больше, чем товаров в категории — лишние остаются
+						        просто фоном, без ссылки и без данных для плашки. */ ?>
+						<img class="straps-carousel__photo" src="<?php echo esc_url( $whoopstore_photo ); ?>" alt="" loading="lazy" />
+					<?php endif; ?>
 				<?php endforeach; ?>
 			</div>
 
-			<p class="straps-carousel__badge">
-				<span class="straps-carousel__badge-line straps-carousel__badge-line--strong">CoreKnit</span>
-				<span class="straps-carousel__badge-line">Color: <strong>Royal Blue</strong></span>
-			</p>
+			<?php if ( '' !== $whoopstore_badge_family ) : ?>
+				<p class="straps-carousel__badge">
+					<span class="straps-carousel__badge-line straps-carousel__badge-line--strong"><?php echo esc_html( $whoopstore_badge_family ); ?></span>
+					<span class="straps-carousel__badge-line">Color: <strong><?php echo esc_html( $whoopstore_badge_color ); ?></strong></span>
+				</p>
+			<?php endif; ?>
 
 			<nav class="toggle straps-carousel__filters" aria-label="Каталоги ремешков">
 				<?php /* Правка 2026-09-11 (наладка переходов): как и в секции

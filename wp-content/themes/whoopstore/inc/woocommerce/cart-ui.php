@@ -83,37 +83,30 @@ add_action( 'wp_enqueue_scripts', function () {
  * было переводить и вычитывать в PHP; наполнение списка товаров и сумм —
  * assets/js/cart-drawer.js по данным Store API.
  *
- * ВАЖНО (согласовано 2026-09-11): форма чекаута — ВЁРСТКА ПО МАКЕТУ.
- * Она не подключена к WooCommerce checkout, не создаёт заказ и не проводит
- * оплату; способы доставки и их цены — статические значения из Figma, а не
- * настроенные shipping methods. Штатный /checkout/ не тронут. Подключение
- * к WooCommerce (поля billing/shipping, СДЭК/ПВЗ/экспресс/самовывоз,
- * YooMoney) — отдельная задача, см. открытые вопросы в
- * docs/figma-design/states-and-components.md.
+ * Форма «Ваш заказ» оформляет настоящий заказ WooCommerce (2026-09-15):
+ * способы доставки и суммы приходят из корзины Store API, форма уходит в
+ * POST /wc/store/v1/checkout — assets/js/cart-drawer.js. Поля, которых нет в
+ * штатной схеме (Telegram, согласие с политикой), серверные проверки,
+ * подписи способов доставки и уведомление в Telegram живут не в теме, а в
+ * mu-plugin whoopstore-commerce: это данные заказа, они не должны зависеть
+ * от темы. Плитки доставки здесь не печатаются — их строит скрипт из
+ * настроенных в WooCommerce способов.
  */
 function whoopstore_cart_overlays() {
 	if ( is_admin() ) {
 		return;
 	}
 
-	// Способы доставки из макета (node 30:818…30:825). Порядок один и тот же
-	// на desktop (сетка 2×2) и mobile (4 подряд) — раскладку задаёт CSS.
-	$shipping_options = [
-		[ 'title' => 'Доставка курьером', 'text' => 'СДЭК доставит заказ по адресу' ],
-		[ 'title' => 'ПВЗ CDEK', 'text' => 'Выберите пункт выдачи на карте' ],
-		[ 'title' => 'Экспресс доставка', 'text' => '1 500 ₽ · день в день по Москве' ],
-		[ 'title' => 'Самовывоз', 'text' => 'Бесплатно: Москва, ул. Олеко Дундича, 3' ],
-	];
-
-	// Поля адреса: подпись => модификатор ширины (половина строки — «Дом» и
-	// «Квартира / офис», node 30:799/30:802).
+	// Поля адреса в порядке из макета. half — половина строки («Дом» и
+	// «Квартира / офис», node 30:799/30:802); required — обязательно, когда
+	// адрес вообще нужен (доставка по адресу). При самовывозе и заказе из
+	// одних виртуальных товаров скрипт прячет эти поля и снимает required.
 	$address_fields = [
-		[ 'placeholder' => 'Город', 'half' => false ],
-		[ 'placeholder' => 'Индекс', 'half' => false ],
-		[ 'placeholder' => 'Улица', 'half' => false ],
-		[ 'placeholder' => 'Дом', 'half' => true ],
-		[ 'placeholder' => 'Квартира / офис', 'half' => true ],
-		[ 'placeholder' => 'Комментарий к заказу', 'half' => false ],
+		[ 'name' => 'city', 'placeholder' => 'Город', 'autocomplete' => 'address-level2', 'half' => false, 'required' => true ],
+		[ 'name' => 'postcode', 'placeholder' => 'Индекс', 'autocomplete' => 'postal-code', 'half' => false, 'required' => true ],
+		[ 'name' => 'street', 'placeholder' => 'Улица', 'autocomplete' => 'address-line1', 'half' => false, 'required' => true ],
+		[ 'name' => 'house', 'placeholder' => 'Дом', 'autocomplete' => 'off', 'half' => true, 'required' => true ],
+		[ 'name' => 'apartment', 'placeholder' => 'Квартира / офис', 'autocomplete' => 'address-line2', 'half' => true, 'required' => false ],
 	];
 	?>
 	<div class="cart-overlay" hidden></div>
@@ -155,7 +148,7 @@ function whoopstore_cart_overlays() {
 				<p class="checkout-form__label">Данные заказа</p>
 
 				<div class="checkout-field">
-					<input type="text" class="checkout-field__input" name="whoopstore_name" placeholder="ФИО" autocomplete="name" />
+					<input type="text" class="checkout-field__input" name="full_name" placeholder="ФИО" autocomplete="name" required />
 				</div>
 
 				<?php /* Телефон: флаг РФ + «+7» внутри поля (node 30:815/30:816). */ ?>
@@ -163,52 +156,49 @@ function whoopstore_cart_overlays() {
 					<span class="checkout-field__flag" aria-hidden="true"></span>
 					<span class="checkout-field__caret" aria-hidden="true"></span>
 					<span class="checkout-field__prefix">+7</span>
-					<input type="tel" class="checkout-field__input" name="whoopstore_phone" placeholder="(000) 000-00-00" autocomplete="tel" />
+					<input type="tel" class="checkout-field__input" name="phone" placeholder="(000) 000-00-00" autocomplete="tel-national" inputmode="tel" required />
 				</div>
 
 				<div class="checkout-field">
-					<input type="email" class="checkout-field__input" name="whoopstore_email" placeholder="E-mail" autocomplete="email" />
+					<input type="email" class="checkout-field__input" name="email" placeholder="E-mail" autocomplete="email" required />
 				</div>
 
 				<div class="checkout-field">
-					<input type="text" class="checkout-field__input" name="whoopstore_telegram" placeholder="Telegram" />
+					<input type="text" class="checkout-field__input" name="telegram" placeholder="Telegram" autocomplete="off" />
 				</div>
 
-				<p class="checkout-form__label checkout-form__label--shipping">Доставка</p>
+				<?php /* Плитки доставки строит скрипт из тарифов корзины; у заказа из
+				        одних виртуальных товаров блок остаётся скрытым. */ ?>
+				<p class="checkout-form__label checkout-form__label--shipping" hidden>Доставка</p>
 
-				<div class="checkout-shipping">
-					<?php foreach ( $shipping_options as $index => $option ) : ?>
-						<label class="checkout-shipping__option">
-							<input type="radio" name="whoopstore_shipping" value="<?php echo esc_attr( $index ); ?>" <?php checked( 0, $index ); ?> />
-							<span class="checkout-shipping__tile">
-								<span class="checkout-shipping__title"><?php echo esc_html( $option['title'] ); ?></span>
-								<span class="checkout-shipping__text"><?php echo esc_html( $option['text'] ); ?></span>
-							</span>
-						</label>
-					<?php endforeach; ?>
-				</div>
+				<div class="checkout-shipping" role="radiogroup" aria-label="Способ доставки" hidden></div>
 
 				<div class="checkout-form__address">
 					<?php foreach ( $address_fields as $field ) : ?>
-						<div class="checkout-field<?php echo $field['half'] ? ' checkout-field--half' : ''; ?>">
-							<input type="text" class="checkout-field__input" placeholder="<?php echo esc_attr( $field['placeholder'] ); ?>" />
+						<div class="checkout-field<?php echo $field['half'] ? ' checkout-field--half' : ''; ?>" data-address-field hidden>
+							<input type="text" class="checkout-field__input" name="<?php echo esc_attr( $field['name'] ); ?>" placeholder="<?php echo esc_attr( $field['placeholder'] ); ?>" autocomplete="<?php echo esc_attr( $field['autocomplete'] ); ?>"<?php echo 'postcode' === $field['name'] ? ' inputmode="numeric"' : ''; ?><?php echo $field['required'] ? ' data-required' : ''; ?> />
 						</div>
 					<?php endforeach; ?>
+
+					<div class="checkout-field">
+						<input type="text" class="checkout-field__input" name="customer_note" placeholder="Комментарий к заказу" autocomplete="off" />
+					</div>
 				</div>
 
 				<label class="checkout-consent">
-					<input type="checkbox" class="checkout-consent__input" />
+					<input type="checkbox" class="checkout-consent__input" name="privacy_consent" required />
 					<span class="checkout-consent__box" aria-hidden="true"></span>
 					<span class="checkout-consent__text">Я согласен(-а) с политикой конфиденциальности</span>
 				</label>
 
 				<div class="checkout-totals">
 					<p class="checkout-totals__row"><span>Товары</span><span class="checkout-totals__items">₽ 0</span></p>
-					<?php /* Значения из макета: реальных shipping methods в магазине ещё нет. */ ?>
-					<p class="checkout-totals__row"><span>Доставка</span><span class="checkout-totals__shipping">₽ 100,00</span></p>
-					<p class="checkout-totals__row"><span>Срок доставки</span><span>1-2 дня</span></p>
+					<p class="checkout-totals__row checkout-totals__row--shipping" hidden><span>Доставка</span><span class="checkout-totals__shipping">₽ 0</span></p>
+					<p class="checkout-totals__row checkout-totals__row--delivery" hidden><span>Срок доставки</span><span class="checkout-totals__delivery"></span></p>
 					<p class="checkout-totals__row checkout-totals__row--grand"><span>Итого</span><span class="checkout-totals__grand">₽ 0</span></p>
 				</div>
+
+				<p class="checkout-form__error" role="alert" hidden></p>
 
 				<button type="submit" class="cart-button cart-button--primary">Перейти к оплате</button>
 			</form>
@@ -225,8 +215,8 @@ function whoopstore_cart_overlays() {
 
 			<p class="cart-plate order-modal__number">
 				<span>Номер заказа</span>
-				<?php /* Заглушка из макета: заказ здесь не создаётся (см. шапку файла). */ ?>
-				<span class="order-modal__number-value">48291</span>
+				<?php /* Номер подставляет скрипт из ответа оформления заказа. */ ?>
+				<span class="order-modal__number-value"></span>
 			</p>
 
 			<button type="button" class="cart-button cart-button--primary order-modal__close">Продолжить покупки</button>

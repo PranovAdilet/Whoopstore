@@ -117,7 +117,7 @@ function whoopstore_device_card( array $item ) {
 		$photo = '<img class="device-card__photo" src="' . esc_url( $item['image'] ) . '" alt="" loading="lazy" />';
 	}
 	?>
-	<div class="device-card card<?php echo esc_attr( $modifier ); ?>">
+	<div class="device-card card<?php echo esc_attr( $modifier ); ?>"<?php echo ! empty( $item['model'] ) ? ' data-model="' . esc_attr( $item['model'] ) . '"' : ''; ?>>
 		<div class="device-card__media<?php echo '' !== $photo ? ' device-card__media--has-photo' : ''; ?>" aria-hidden="true">
 			<?php if ( ! empty( $item['watermark'] ) ) : ?>
 				<span class="device-card__watermark"><?php echo esc_html( $item['watermark'] ); ?></span>
@@ -182,16 +182,21 @@ function whoopstore_device_card( array $item ) {
  *     @type string $image Путь к фото (обязательно — плитка без фото
  *                          визуально не существует, в отличие от
  *                          .device-card с её паттерн-заглушкой).
+ *     @type string $href  Ссылка (опционально): с ней плитка становится
+ *                          ссылкой-обёрткой, без неё — обычным блоком, как
+ *                          раньше. Разметка внутри одна и та же.
  * }
  */
 function whoopstore_tile_card( array $item ) {
+	$tag = ! empty( $item['href'] ) ? 'a' : 'div';
+
+	echo '<' . $tag . ' class="tile-card"' . ( ! empty( $item['href'] ) ? ' href="' . esc_url( $item['href'] ) . '"' : '' ) . '>';
 	?>
-	<div class="tile-card">
 		<img class="tile-card__photo" src="<?php echo esc_url( $item['image'] ); ?>" alt="" loading="lazy" />
 		<span class="tile-card__scrim" aria-hidden="true"></span>
 		<span class="tile-card__title"><?php echo esc_html( $item['title'] ); ?></span>
-	</div>
 	<?php
+	echo '</' . $tag . '>';
 }
 
 /**

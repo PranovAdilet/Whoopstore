@@ -25,26 +25,33 @@
  * напрямую по ссылкам из raw-дампа и уменьшены до ≤900px/JPEG q85
  * (оригиналы 800…2600px весили 0.4–7 МБ на плитку 360×300 — избыточно).
  *
- * ⚠️ Открытый вопрос (НЕ реализовано намеренно): в макете плитки читаются
- * как навигация по разделам каталога, но целей ссылок Figma не даёт, а
- * однозначно сопоставить их с 7 разделами каталога ниже нельзя (6 плиток
- * против 7 разделов, 4-я плитка дублирует 1-ю по названию, раздела
- * CloudKnit среди плиток нет). Поэтому плитки пока не кликабельны — тот же
- * подход, что уже принят для фильтра устройств на Главной
- * (.device-grid__filter, см. theme.css). Нужны подтверждённые цели ссылок.
+ * Цели плиток (решение заказчика 2026-09-16): плитка ведёт к своему разделу
+ * каталога на этой же странице — якорь совпадает со slug категории товаров,
+ * его печатает whoopstore_category_section() (см. straps-50-catalog.php).
+ * Перезагрузки нет, работает и без JS. Ссылаться на архив категории нельзя:
+ * он 301-м возвращается на эту же страницу (inc/woocommerce/redirects.php).
+ *
+ * Две нестыковки самого макета и что с ними решено:
+ *  - 4-я плитка подписана «Кожаные люксовые ремешки», как и 1-я. Ведёт она на
+ *    «Плетёные люксовые SuperKnit» — единственный оставшийся люксовый раздел;
+ *    подпись оставлена дословно из макета, не переписана.
+ *  - Раздел «Кашемировые CloudKnit» плитки в макете не имеет — плитку не
+ *    придумывали, раздел доступен прокруткой каталога.
  */
 
 $whoopstore_straps_50_categories = [
-	[ 'title' => 'Кожаные люксовые ремешки LeatherLuxe Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-leatherluxe.jpg' ],
-	[ 'title' => 'Спортивные ремешки SportFlex Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-sportflex.jpg' ],
-	[ 'title' => 'Плетеные ремешки SuperKnit Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-superknit.jpg' ],
-	[ 'title' => 'Кожаные люксовые ремешки', 'image' => '/wp-content/uploads/2026/09/straps-50-category-leatherluxe-2.jpg' ],
-	[ 'title' => 'Влагостойкие ремешки CoreKnit Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-coreknit.jpg' ],
-	[ 'title' => 'Ремешки на бицепс CoreKnit Bicep Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-bicep.jpg' ],
+	[ 'title' => 'Кожаные люксовые ремешки LeatherLuxe Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-leatherluxe.jpg', 'section' => 'leatherluxe-5-0' ],
+	[ 'title' => 'Спортивные ремешки SportFlex Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-sportflex.jpg', 'section' => 'sportflex-5-0' ],
+	[ 'title' => 'Плетеные ремешки SuperKnit Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-superknit.jpg', 'section' => 'superknit-5-0' ],
+	[ 'title' => 'Кожаные люксовые ремешки', 'image' => '/wp-content/uploads/2026/09/straps-50-category-leatherluxe-2.jpg', 'section' => 'superknit-luxe-5-0' ],
+	[ 'title' => 'Влагостойкие ремешки CoreKnit Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-coreknit.jpg', 'section' => 'coreknit-5-0' ],
+	[ 'title' => 'Ремешки на бицепс CoreKnit Bicep Band', 'image' => '/wp-content/uploads/2026/09/straps-50-category-bicep.jpg', 'section' => 'coreknit-bicep' ],
 ];
 ?>
 <!-- wp:html -->
 <div class="tile-grid">
-	<?php foreach ( $whoopstore_straps_50_categories as $whoopstore_tile ) : whoopstore_tile_card( $whoopstore_tile ); endforeach; ?>
+	<?php foreach ( $whoopstore_straps_50_categories as $whoopstore_tile ) : ?>
+		<?php whoopstore_tile_card( array_merge( $whoopstore_tile, [ 'href' => '#' . $whoopstore_tile['section'] ] ) ); ?>
+	<?php endforeach; ?>
 </div>
 <!-- /wp:html -->

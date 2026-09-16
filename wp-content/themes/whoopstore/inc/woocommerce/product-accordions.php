@@ -11,6 +11,13 @@
  * аккордеоны. Поэтому — два обычных мета-поля товара с полями ввода в
  * штатной панели "Данные товара", без плагинов (правило 15 CLAUDE.md).
  * Пустое поле = аккордеон не выводится.
+ *
+ * Правка 2026-09-16: условия доставки в макете общие для всех товаров, и
+ * держать их в каждом товаре бессмысленно — 60 карточек остались бы без
+ * аккордеона, пока кто-то не заполнит поле руками. Поэтому у "Доставки"
+ * появился общий текст в настройках магазина, а поле товара стало
+ * переопределением. "Таблица размеров" общего текста не получает: габариты
+ * у каждой модели свои.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,16 +36,74 @@ function whoopstore_product_accordion_fields() {
 	];
 }
 
+/* ---------- Общий текст "Доставки" ---------- */
+
+/**
+ * Условия доставки из макета (Figma 30:269) — значение по умолчанию.
+ *
+ * @return string
+ */
+function whoopstore_delivery_text_fallback() {
+	return "<strong>Срок доставки в Россию:</strong> 14-21 дней\n<strong>Доставка по России:</strong> Курьерская доставка по Москве в день заказа, доставка по России — за 2–4 дня через службы СДЭК и 5Post.";
+}
+
+/**
+ * Текст "Доставки", общий для всех товаров (настройка магазина).
+ *
+ * @return string
+ */
+function whoopstore_default_delivery_text() {
+	return (string) get_option( 'whoopstore_default_delivery', whoopstore_delivery_text_fallback() );
+}
+
+/**
+ * Поле общего текста — в штатные настройки WooCommerce → Товары, чтобы его
+ * правил менеджер, а не разработчик. WooCommerce сам сохраняет значение в
+ * опцию с тем же id.
+ */
+add_filter( 'woocommerce_get_settings_products', function ( $settings, $section ) {
+	if ( '' !== $section ) {
+		return $settings;
+	}
+
+	$settings[] = [
+		'type'  => 'title',
+		'title' => 'Страница товара',
+		'id'    => 'whoopstore_product_page_options',
+	];
+
+	$settings[] = [
+		'type'    => 'textarea',
+		'id'      => 'whoopstore_default_delivery',
+		'title'   => 'Аккордеон «Доставка»',
+		'desc'    => 'Общий для всех товаров текст. Если у товара это поле заполнено в «Данных товара», показывается его собственный текст. У виртуальных товаров (подписки, активация) аккордеон не выводится.',
+		'default' => whoopstore_delivery_text_fallback(),
+		'css'     => 'min-height:120px; width:100%;',
+	];
+
+	$settings[] = [
+		'type' => 'sectionend',
+		'id'   => 'whoopstore_product_page_options',
+	];
+
+	return $settings;
+}, 10, 2 );
+
 /* ---------- Админка: поля в панели "Данные товара" ---------- */
 
 add_action( 'woocommerce_product_options_general_product_data', function () {
+	$descriptions = [
+		'_whoopstore_size_guide' => 'Содержимое аккордеона «Таблица размеров» на странице товара. Пусто — аккордеон не выводится.',
+		'_whoopstore_delivery'   => 'Условия доставки именно этого товара. Пусто — берётся общий текст из WooCommerce → Настройки → Товары.',
+	];
+
 	echo '<div class="options_group">';
 
 	foreach ( whoopstore_product_accordion_fields() as $key => $label ) {
 		woocommerce_wp_textarea_input( [
 			'id'          => $key,
 			'label'       => $label,
-			'description' => 'Содержимое одноимённого аккордеона на странице товара. Пусто — аккордеон не выводится.',
+			'description' => isset( $descriptions[ $key ] ) ? $descriptions[ $key ] : '',
 			'desc_tip'    => true,
 			'rows'        => 4,
 		] );
@@ -95,9 +160,16 @@ function whoopstore_single_accordions() {
 	$items = [];
 
 	foreach ( whoopstore_product_accordion_fields() as $key => $label ) {
-		$value = $product->get_meta( $key );
+		$value = (string) $product->get_meta( $key );
 
-		if ( '' !== trim( (string) $value ) ) {
+		// Доставка одинакова для всех товаров, которые действительно везут:
+		// пустое поле заменяется общим текстом из настроек. Виртуальные
+		// товары (подписки, активация) не доставляют — у них аккордеона нет.
+		if ( '' === trim( $value ) && '_whoopstore_delivery' === $key && ! $product->is_virtual() ) {
+			$value = whoopstore_default_delivery_text();
+		}
+
+		if ( '' !== trim( $value ) ) {
 			$items[ $label ] = $value;
 		}
 	}

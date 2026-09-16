@@ -38,3 +38,16 @@ add_filter( 'gettext', function ( $translated, $text, $domain ) {
 	}
 	return $translated;
 }, 10, 3 );
+
+// Уведомление "«Товар» has been added to your cart." остаётся английским даже с
+// установленным русским пакетом WooCommerce — этой строки в нём нет (проверено
+// 2026-09-16 на ru_RU). Видно её в запасном пути без JS: форма товара уходит
+// обычным POST, и WooCommerce показывает это уведомление. Строка множественная
+// (_n), поэтому фильтр ngettext, а не gettext.
+add_filter( 'ngettext', function ( $translated, $single, $plural, $number, $domain ) {
+	if ( 'woocommerce' !== $domain || '%s has been added to your cart.' !== $single ) {
+		return $translated;
+	}
+
+	return 1 === (int) $number ? '%s добавлен в корзину.' : '%s добавлены в корзину.';
+}, 10, 5 );

@@ -297,6 +297,25 @@
 		sync();
 	}
 
+	/* ---------- Оформление заказа ---------- */
+
+	// Те же маршруты Store API, что у блока Checkout WooCommerce. В отличие от
+	// изменения корзины, ошибки здесь не гасятся: форма должна показать
+	// покупателю, что пошло не так (нет адреса, тариф недоступен и т.п.).
+	function selectShippingRate( packageId, rateId ) {
+		return request( 'cart/select-shipping-rate', {
+			method: 'POST',
+			body: { package_id: packageId, rate_id: rateId },
+		} ).then( setState );
+	}
+
+	function checkout( data ) {
+		return request( 'checkout', {
+			method: 'POST',
+			body: data,
+		} );
+	}
+
 	/* ---------- Публичный интерфейс для остальных модулей ---------- */
 
 	window.whoopstoreCart = {
@@ -315,6 +334,8 @@
 		updateItem: updateItem,
 		removeItem: removeItem,
 		clear: clear,
+		selectShippingRate: selectShippingRate,
+		checkout: checkout,
 	};
 
 	function boot() {

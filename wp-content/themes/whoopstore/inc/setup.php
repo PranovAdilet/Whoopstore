@@ -114,6 +114,14 @@ add_action( 'wp_enqueue_scripts', function () {
 		// "Раскрытый" из Figma). Тот же паттерн подключения: секция пока
 		// только на Главной.
 		wp_enqueue_script( 'whoopstore-advantages-more', get_theme_file_uri( 'assets/js/advantages-more.js' ), [], whoopstore_asset_version( 'assets/js/advantages-more.js' ), true );
+
+		// Лента "Персонализируйте свой WHOOP": шаг стрелками и плашка с
+		// названием выбранного ремешка. Свайп работает и без скрипта —
+		// прокрутка у ленты нативная.
+		wp_enqueue_script( 'whoopstore-straps-carousel', get_theme_file_uri( 'assets/js/straps-carousel.js' ), [], whoopstore_asset_version( 'assets/js/straps-carousel.js' ), true );
+
+		// Фильтр-пилюли в сетке трекеров.
+		wp_enqueue_script( 'whoopstore-device-filter', get_theme_file_uri( 'assets/js/device-filter.js' ), [], whoopstore_asset_version( 'assets/js/device-filter.js' ), true );
 	}
 
 	// Скрипты страницы товара. Тост "Товар добавлен в Корзину", степпер и
@@ -134,6 +142,40 @@ add_action( 'wp_enqueue_scripts', function () {
 		wp_enqueue_script( 'whoopstore-related-carousel', get_theme_file_uri( 'assets/js/related-carousel.js' ), [], whoopstore_asset_version( 'assets/js/related-carousel.js' ), true );
 	}
 } );
+
+/**
+ * Скрипты WooCommerce на страницах, где нет ни одной формы добавления в корзину.
+ *
+ * На Главной, каталогах ремешков и «Подписках» карточки — обычные ссылки на
+ * товар, форм добавления нет вовсе (проверено рендером). WooCommerce при этом
+ * ставит туда jQuery, jQuery Migrate, blockUI, add-to-cart, js-cookie и свой
+ * frontend-скрипт: он обслуживает поля чекаута, личный кабинет и показ пароля.
+ * Наша корзина работает на Store API и от jQuery не зависит, фрагменты корзины
+ * WooCommerce не используются, зависимостей от этих хендлов на таких страницах
+ * нет (wp_scripts->registered проверен).
+ *
+ * Сбор источника заказа (sourcebuster-js + wc-order-attribution) НЕ трогаем: он
+ * должен работать на всех страницах, включая точку входа, иначе в заказе
+ * потеряется источник перехода. От снимаемых хендлов он не зависит.
+ *
+ * Это обычная оптимизация (минус 6 запросов со страницы), а не лечение 504 на
+ * стенде — те приходят от прокси перед сайтом, см. docs/commerce-notes.md.
+ */
+add_action( 'wp_enqueue_scripts', function () {
+	if ( ! function_exists( 'is_woocommerce' ) ) {
+		return;
+	}
+
+	// Любая страница WooCommerce (магазин, товар, категория), корзина, оформление
+	// заказа и кабинет получают их в полном объёме.
+	if ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) {
+		return;
+	}
+
+	foreach ( [ 'woocommerce', 'wc-add-to-cart', 'jquery-blockui', 'js-cookie' ] as $handle ) {
+		wp_dequeue_script( $handle );
+	}
+}, 99 );
 
 // Фотография первого экрана задана в CSS (background: url(...) на
 // .home-hero-wrap__media), а не тегом <img>. Такие картинки браузер находит
