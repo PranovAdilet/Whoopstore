@@ -12,7 +12,11 @@
  *
  * Запуск:
  *   /usr/local/php/cgi/8.2/bin/php tools/qa/smoke.php
- *   /usr/local/php/cgi/8.2/bin/php tools/qa/smoke.php --keep   (не удалять HTML)
+ *   /usr/local/php/cgi/8.2/bin/php tools/qa/smoke.php --keep    (не удалять HTML)
+ *   /usr/local/php/cgi/8.2/bin/php tools/qa/smoke.php --links   (+ внутренние ссылки)
+ *
+ * Проверка ссылок вынесена во флаг: она поднимает WordPress по разу на каждый
+ * адрес и занимает около минуты.
  *
  * Код возврата 1 — есть замечания.
  */
@@ -23,7 +27,8 @@ if ( 'cli' !== PHP_SAPI ) {
 
 $root = dirname( __DIR__, 2 );
 $out  = __DIR__ . '/out';
-$keep = in_array( '--keep', $argv, true );
+$keep  = in_array( '--keep', $argv, true );
+$links = in_array( '--links', $argv, true );
 
 require $root . '/wp-load.php';
 
@@ -73,6 +78,52 @@ function whoopstore_qa_expected( $label ) {
 	][ $label ] ?? [];
 }
 
+/**
+ * Запускает tools/qa/render.php и разбирает его строку состояния.
+ *
+ * @param string      $uri  Адрес от корня сайта.
+ * @param string|null $file Куда сохранить разметку; null — только проверить адрес.
+ * @return array{is_404:bool,redirect:string,notices:int,stderr:string}|null
+ */
+function whoopstore_qa_render( $uri, $file = null ) {
+	$command = sprintf(
+		'%s %s %s',
+		escapeshellarg( PHP_BINARY ),
+		escapeshellarg( __DIR__ . '/render.php' ),
+		escapeshellarg( $uri )
+	);
+
+	$descriptors = [ 2 => [ 'pipe', 'w' ] ];
+
+	if ( null === $file ) {
+		$command        .= ' --probe';
+		$descriptors[1]  = [ 'file', '/dev/null', 'w' ];
+	} else {
+		$descriptors[1] = [ 'file', $file, 'w' ];
+	}
+
+	$process = proc_open( $command, $descriptors, $pipes, dirname( __DIR__, 2 ) );
+
+	if ( ! is_resource( $process ) ) {
+		return null;
+	}
+
+	$stderr = stream_get_contents( $pipes[2] );
+	fclose( $pipes[2] );
+	proc_close( $process );
+
+	preg_match( '/404=(\w+)/', $stderr, $m404 );
+	preg_match( '/redirect=(\S+)/', $stderr, $mredirect );
+	preg_match( '/notices=(\d+)/', $stderr, $mnotices );
+
+	return [
+		'is_404'   => 'yes' === ( $m404[1] ?? 'no' ),
+		'redirect' => '-' !== ( $mredirect[1] ?? '-' ) ? $mredirect[1] : '',
+		'notices'  => (int) ( $mnotices[1] ?? 0 ),
+		'stderr'   => $stderr,
+	];
+}
+
 // ---------------------------------------------------------------------------
 // 1. Рендер
 // ---------------------------------------------------------------------------
@@ -84,7 +135,6 @@ if ( ! is_dir( $out ) && ! mkdir( $out, 0755, true ) ) {
 
 array_map( 'unlink', glob( $out . '/*.html' ) );
 
-$php      = PHP_BINARY;
 $problems = [];
 $files    = [];
 $rows     = [];
@@ -98,30 +148,17 @@ foreach ( whoopstore_qa_urls() as $label => $url ) {
 	$uri  = wp_make_link_relative( $url );
 	$file = $out . '/' . sanitize_title( $label ) . '.html';
 
-	$descriptors = [ 1 => [ 'file', $file, 'w' ], 2 => [ 'pipe', 'w' ] ];
-	$process     = proc_open(
-		sprintf( '%s %s %s', escapeshellarg( $php ), escapeshellarg( __DIR__ . '/render.php' ), escapeshellarg( $uri ) ),
-		$descriptors,
-		$pipes,
-		$root
-	);
+	$state = whoopstore_qa_render( $uri, $file );
 
-	if ( ! is_resource( $process ) ) {
+	if ( null === $state ) {
 		$problems[] = "{$label}: не удалось запустить рендер";
 		continue;
 	}
 
-	$stderr = stream_get_contents( $pipes[2] );
-	fclose( $pipes[2] );
-	proc_close( $process );
-
-	preg_match( '/404=(\w+)/', $stderr, $m404 );
-	preg_match( '/redirect=(\S+)/', $stderr, $mredirect );
-	preg_match( '/notices=(\d+)/', $stderr, $mnotices );
-
-	$is404    = ( $m404[1] ?? 'no' ) === 'yes';
-	$redirect = ( $mredirect[1] ?? '-' ) !== '-' ? $mredirect[1] : '';
-	$notices  = (int) ( $mnotices[1] ?? 0 );
+	$is404    = $state['is_404'];
+	$redirect = $state['redirect'];
+	$notices  = $state['notices'];
+	$stderr   = $state['stderr'];
 	$bytes    = file_exists( $file ) ? filesize( $file ) : 0;
 	$expected = whoopstore_qa_expected( $label );
 
@@ -142,7 +179,7 @@ foreach ( whoopstore_qa_urls() as $label => $url ) {
 	}
 
 	if ( $bytes > 0 ) {
-		$files[] = $file;
+		$files[ $file ] = $label; // человекочитаемое имя для отчёта о ссылках
 	}
 
 	$rows[] = [ $label, $uri, $bytes, $is404 ? '404' : ( '' !== $redirect ? '→ ' . $redirect : 'ok' ), $notices ];
@@ -210,14 +247,55 @@ function whoopstore_qa_asset_links( $html ) {
 	return array_unique( $found );
 }
 
-$home    = home_url( '/' );
-$origin  = untrailingslashit( $home );
-$missing = [];
-$checked = 0;
+/**
+ * Приводит адрес ссылки к пути внутри сайта или возвращает пустую строку,
+ * если проверять нечего: чужой домен, якорь, почта, телефон или статический
+ * файл (их проверяет разбор ассетов выше).
+ *
+ * @param string $href   Значение href.
+ * @param string $origin Адрес сайта без слеша на конце.
+ * @return string
+ */
+function whoopstore_qa_internal_path( $href, $origin ) {
+	if ( '' === $href || str_starts_with( $href, '#' ) || str_starts_with( $href, 'mailto:' ) || str_starts_with( $href, 'tel:' ) ) {
+		return '';
+	}
 
-foreach ( $files as $file ) {
+	if ( str_starts_with( $href, 'http' ) || str_starts_with( $href, '//' ) ) {
+		if ( ! str_starts_with( $href, $origin ) ) {
+			return '';
+		}
+
+		$href = substr( $href, strlen( $origin ) );
+	}
+
+	if ( '' === $href || ! str_starts_with( $href, '/' ) ) {
+		return '';
+	}
+
+	$href = strtok( $href, '#' );
+
+	return preg_match( '/\.(css|js|png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|eot|mp4|webm)(\?|$)/i', $href ) ? '' : $href;
+}
+
+$home     = home_url( '/' );
+$origin   = untrailingslashit( $home );
+$missing  = [];
+$checked  = 0;
+$internal = [];
+
+foreach ( $files as $file => $page ) {
 	$html = (string) file_get_contents( $file );
-	$page = basename( $file, '.html' );
+
+	if ( $links && preg_match_all( '/<a[^>]*\shref=["\']([^"\']+)["\']/i', $html, $anchors ) ) {
+		foreach ( $anchors[1] as $anchor ) {
+			$path = whoopstore_qa_internal_path( trim( $anchor ), $origin );
+
+			if ( '' !== $path ) {
+				$internal[ $path ][ $page ] = true;
+			}
+		}
+	}
 
 	foreach ( whoopstore_qa_asset_links( $html ) as $link ) {
 		$link = trim( $link );
@@ -263,13 +341,44 @@ if ( $missing ) {
 	echo "Битых ассетов нет.\n";
 }
 
+// ---------------------------------------------------------------------------
+// 3. Внутренние ссылки (--links)
+// ---------------------------------------------------------------------------
+
+if ( $links ) {
+	ksort( $internal );
+	printf( "\nВнутренних ссылок к проверке: %d\n", count( $internal ) );
+
+	$broken = 0;
+
+	foreach ( $internal as $path => $pages ) {
+		$state = whoopstore_qa_render( $path );
+
+		if ( null === $state ) {
+			$problems[] = 'не удалось проверить ссылку ' . $path;
+			continue;
+		}
+
+		if ( ! $state['is_404'] ) {
+			continue;
+		}
+
+		++$broken;
+		$problems[] = 'ссылка ведёт на 404: ' . urldecode( $path ) . ' (на страницах: ' . implode( ', ', array_keys( $pages ) ) . ')';
+	}
+
+	if ( 0 === $broken ) {
+		echo "Ссылок на 404 нет.\n";
+	}
+}
+
 if ( ! $keep ) {
 	array_map( 'unlink', glob( $out . '/*.html' ) );
 	@rmdir( $out );
 }
 
 // ---------------------------------------------------------------------------
-// 3. Итог
+// 4. Итог
 // ---------------------------------------------------------------------------
 
 if ( $problems ) {

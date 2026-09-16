@@ -10,7 +10,10 @@
  *   /usr/local/php/cgi/8.2/bin/php tools/qa/render.php /remeshki-whoop-mg/ > page.html
  *
  * В stderr уходит строка состояния: 404, редирект и число замечаний PHP.
- * Ненулевой код возврата = страница отдала 404 или редирект.
+ *
+ * Флаг --probe останавливает работу сразу после разбора запроса, до вывода
+ * шаблона: нужно только узнать, существует ли адрес. Так проверка внутренних
+ * ссылок (tools/qa/smoke.php --links) не рендерит десятки страниц целиком.
  */
 
 if ( 'cli' !== PHP_SAPI ) {
@@ -19,7 +22,8 @@ if ( 'cli' !== PHP_SAPI ) {
 
 $root = dirname( __DIR__, 2 );
 
-$whoopstore_qa_uri = isset( $argv[1] ) ? $argv[1] : '/';
+$whoopstore_qa_uri   = isset( $argv[1] ) ? $argv[1] : '/';
+$whoopstore_qa_probe = in_array( '--probe', $argv, true );
 
 // В CLI суперглобального $_GET нет, а WordPress берёт параметры запроса
 // именно из него — без этого адрес вида /?s=... отрендерился бы как Главная.
@@ -75,8 +79,12 @@ define( 'WP_USE_THEMES', true );
 // возможность навесить наблюдатели до wp() ниже.
 require $root . '/wp-load.php';
 
-add_action( 'template_redirect', function () use ( &$whoopstore_qa ) {
+add_action( 'template_redirect', function () use ( &$whoopstore_qa, $whoopstore_qa_probe ) {
 	$whoopstore_qa['is_404'] = is_404();
+
+	if ( $whoopstore_qa_probe ) {
+		exit( 0 ); // строку состояния допишет register_shutdown_function
+	}
 }, 1 );
 
 // Редирект перехватываем до отправки заголовков: иначе страница просто
