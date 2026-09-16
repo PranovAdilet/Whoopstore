@@ -59,6 +59,26 @@ function whoopstore_analytics_enabled() {
 	return (bool) apply_filters( 'whoopstore_analytics_enabled', $enabled );
 }
 
+/**
+ * Счётчик DMP Programmatic.ru.
+ *
+ * Код вендора вставлен как есть, без обёртки в wp_enqueue_script: у него свой
+ * комментарий-маркер и свой формат тега, а подменять чужой сниппет своей
+ * сборкой — лишний риск на ровном месте.
+ *
+ * В отличие от Метрики и GTM, этот счётчик **не ограничен production** — так
+ * попросил заказчик, чтобы его было видно на стенде. Значит, на стенде он
+ * тоже отрабатывает и шлёт запросы в Programmatic.ru; если это нежелательно,
+ * достаточно обернуть вывод в whoopstore_analytics_enabled(), как у соседей.
+ */
+add_action( 'wp_head', function () {
+	?>
+<!-- [Programmatic.ru](https://programmatic.ru/) dmp counter -->
+<script async type='text/javascript' src='https://dmp.programmatic.ru/assets'></script>
+<!-- [Programmatic.ru](https://programmatic.ru/) dmp counter -->
+	<?php
+}, 1 );
+
 // Метрика и head-часть GTM. Приоритет 1 — счётчик должен успеть засечь визит
 // даже если посетитель уйдёт со страницы сразу.
 add_action( 'wp_head', function () {
