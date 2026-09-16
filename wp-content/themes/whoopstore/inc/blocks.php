@@ -76,7 +76,7 @@ function whoopstore_product_category_options() {
 }
 
 add_action( 'init', function () {
-	$blocks = [ 'breadcrumbs', 'category-catalog' ];
+	$blocks = [ 'breadcrumbs', 'category-catalog', 'search-results' ];
 
 	foreach ( $blocks as $block ) {
 		$handle   = 'whoopstore-block-' . $block;

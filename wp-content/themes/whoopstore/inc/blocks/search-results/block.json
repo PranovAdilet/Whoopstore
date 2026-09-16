@@ -1,0 +1,25 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "whoopstore/search-results",
+	"title": "Результаты поиска",
+	"category": "theme",
+	"icon": "search",
+	"description": "Найденные товары карточками каталога. Ничего не хранит: заголовок и карточки собираются на сервере по поисковому запросу.",
+	"textdomain": "whoopstore",
+	"attributes": {},
+	"supports": {
+		"html": false,
+		"className": false,
+		"customClassName": false,
+		"anchor": false,
+		"align": false,
+		"spacing": false,
+		"typography": false,
+		"color": false,
+		"multiple": false,
+		"reusable": false
+	},
+	"editorScript": "whoopstore-block-search-results",
+	"render": "file:./render.php"
+}
