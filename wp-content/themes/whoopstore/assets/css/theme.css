@@ -2990,6 +2990,21 @@ a {
 	align-items: stretch;
 }
 
+/* Секция переехала в синхронизированный паттерн (этап 6.2): .contact-block и
+   .contact-block__messengers-wrapper стали блоками-группами и впервые получили
+   от Gutenberg is-layout-flow. Ядро вешает на их потомков block-gap
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}) — инфо-карточка
+   съезжала бы на 24px относительно карты и ломала align-items:stretch, а иконки
+   мессенджеров — относительно юр. строки.
+
+   Правило адресное, а не `> *`: у p.contact-block__legal есть собственный
+   margin-top:auto со специфичностью (0,1,1), которым юр. строка прижата к низу
+   карточки, и общее правило (0,2,0) его бы перебило. */
+.contact-block > .contact-block__info,
+.contact-block__messengers-wrapper > .contact-block__messengers {
+	margin-block-start: 0;
+}
+
 .contact-block__map,
 .contact-block__info {
 	flex: 1 1 50%;
