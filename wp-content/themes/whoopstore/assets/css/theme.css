@@ -3135,6 +3135,17 @@ p.contact-block__legal {
 	padding: 0;
 }
 
+/* Секция переехала в синхронизированный паттерн (этап 6.1), из-за чего
+   .telegram-subscribe стала блоком-группой, а её колонки — потомками
+   layout-контейнера Gutenberg. Ядро вешает на таких потомков block-gap
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}), и телефон
+   съезжал вниз относительно текста. Гасим только этот отступ: вертикальную
+   раскладку секции задаёт flex выше, а не поток. Селектор с родителем
+   (0,2,0) — правило ядра идёт со специфичностью одиночного класса. */
+.telegram-subscribe > * {
+	margin-block-start: 0;
+}
+
 .telegram-subscribe__content {
 	flex: 0 1 420px;
 	min-width: 0;
