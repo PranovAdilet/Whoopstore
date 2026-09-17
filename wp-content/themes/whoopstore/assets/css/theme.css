@@ -2981,6 +2981,79 @@ a {
 	margin: 0 30px 22px;
 }
 
+/* ---------- FAQ на core/details (этап 6.3) ---------- */
+
+/* Секция переехала в синхронизированный паттерн на штатный блок core/details.
+   У него <summary> не несёт никакого класса, поэтому правила ниже повторяют
+   .faq__question для новой разметки.
+
+   Старые селекторы (.faq__question, .faq__chevron) СОХРАНЕНЫ намеренно:
+   patterns/faq-accordion.php ещё лежит в репозитории, и откат 6.3 должен
+   оставаться одной командой — вернуть шаблоны. Когда старые паттерны будут
+   удалены по отдельной команде, эти дубли уйдут вместе с ними. */
+.faq__item > summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 80px;
+	padding: 0 30px;
+	cursor: pointer;
+	font-weight: 500;
+	font-size: var(--wp--preset--font-size--md);
+	line-height: 0.99;
+	letter-spacing: -0.4px;
+	list-style: none;
+}
+
+.faq__item > summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Иконка «плюс» — тот же файл, что раньше вставлялся инлайновым SVG, поэтому
+   геометрия та же. Поворот на 45° так же превращает её в «крестик».
+   `:not(.faq__question)` — у старой разметки класс на <summary> есть, у новой
+   класса нет вовсе: так при откате на паттерн вторая иконка не появится. */
+.faq__item > summary:not(.faq__question)::after {
+	content: "";
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	background: currentColor;
+	-webkit-mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
+	mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
+	transition: transform 0.2s ease;
+}
+
+.faq__item[open] > summary:not(.faq__question)::after {
+	transform: rotate(45deg);
+}
+
+/* Компенсация block-gap ядра: .faq и .faq__list впервые стали
+   layout-контейнерами Gutenberg. Без этого контент секции съезжает на 24px
+   внутри фотозоны, а между карточками вместо gap:15px получается 39px. */
+.faq > .faq__content,
+.faq__list > .faq__item {
+	margin-block-start: 0;
+}
+
+/* Нижний отступ раскрытого ответа. core/details — layout-контейнер, а абзац
+   ответа в нём последний ребёнок, поэтому правило ядра
+   `:root :where(.is-layout-flow) > :last-child {margin-block-end: 0}`
+   обнуляло 22px из `.faq__answer`. Специфичности: у ядра (0,2,0) —
+   :root плюс :last-child, :where() не считается; у `.faq__answer` всего
+   (0,1,0), поэтому ядро выигрывало и ответ прилипал к низу карточки.
+   В старой разметке этого не было: у <details> не было класса раскладки.
+
+   Селектор ниже — (0,3,0), то есть выигрывает по специфичности, а не по
+   порядку подключения файлов. Значение то же самое, что в .faq__answer,
+   новых величин не вводим. Старой разметке правило не мешает: там цепочка
+   .faq__list > .faq__item > .faq__answer такая же, а значение совпадает с
+   уже действующим. */
+.faq__list > .faq__item > .faq__answer {
+	margin-block-end: 22px;
+}
+
 /* ---------- Contact block ---------- */
 
 .contact-block {
@@ -4250,6 +4323,24 @@ p.contact-block__legal {
 	.faq__question-text {
 		max-width: 224px;
 		text-wrap: balance;
+	}
+
+	/* FAQ на core/details: те же значения, что у .faq__question выше.
+	   Ширину текста вопроса раньше держал <span class="faq__question-text">,
+	   которого в summary больше нет — текст стал анонимным элементом и
+	   напрямую не таргетируется, поэтому ограничиваем его колонкой грида. */
+	.faq__item > summary {
+		display: grid;
+		grid-template-columns: minmax(0, 224px) 1fr;
+		align-items: center;
+		gap: 10px;
+		font-size: 16px;
+		letter-spacing: -0.32px;
+		text-wrap: balance;
+	}
+
+	.faq__item > summary:not(.faq__question)::after {
+		justify-self: end;
 	}
 
 
