@@ -128,6 +128,14 @@
 								}
 							}
 						} ),
+						el( wp.components.ToggleControl, {
+							label: 'Ставить якоря на разделы',
+							help: 'Нужно, когда на разделы ведут ссылки внутри страницы (плитки категорий).',
+							checked: !! props.attributes.anchors,
+							onChange: function ( value ) {
+								props.setAttributes( { anchors: value } );
+							}
+						} ),
 						el(
 							'p',
 							{ style: { fontSize: '12px', color: '#757575' } },
