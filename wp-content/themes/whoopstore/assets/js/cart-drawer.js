@@ -69,6 +69,11 @@
 	var mapWidget = null;
 	var mapCity = '';
 
+	// Выбранный способ доставки пропал (см. renderShippingNotice): название
+	// последнего выбранного и признак, что в блоке ошибки сейчас это сообщение.
+	var lastRateName = '';
+	var shippingNotice = false;
+
 	/* ---------- Форматирование ---------- */
 
 	function currency( totals ) {
@@ -807,7 +812,7 @@
 		var cdekUnpriced = !! cdekPendingKind;
 
 		totalsItems.textContent = formatPrice( itemsTotal, state.totals );
-		shippingRow.hidden = ! state.needs_shipping || cdekUnpriced;
+		shippingRow.hidden = ! state.needs_shipping || cdekUnpriced || ! rate;
 		totalsShipping.textContent = formatPrice( shippingTotal, state.totals );
 
 		// «Срок доставки» — только если он задан у тарифа. Выдумывать срок,
@@ -820,6 +825,36 @@
 		} else {
 			totalsGrand.textContent = formatPrice( pendingRateId ? itemsTotal + shippingTotal : state.totals.total_price, state.totals );
 		}
+
+		renderShippingNotice( state, rate );
+	}
+
+	/**
+	 * Выбранный способ доставки стал недоступен (СДЭК не знает новый город или
+	 * не ответил): сервер не подставляет вместо него другой, выбора просто нет
+	 * (mu-plugins/whoopstore-commerce/cdek.php). Покупателю говорим об этом
+	 * прямо и ждём, пока он выберет способ сам. Сообщение живёт в том же блоке
+	 * ошибки формы и не перебивает другие ошибки.
+	 */
+	function renderShippingNotice( state, rate ) {
+		var missing = !! ( state && state.needs_shipping && shippingPackage( state ) && ! rate && ! cdekPendingKind );
+
+		if ( ! missing ) {
+			if ( shippingNotice ) {
+				hideError();
+			}
+
+			return;
+		}
+
+		if ( ! errorBox.hidden && ! shippingNotice ) {
+			return;
+		}
+
+		showError( lastRateName
+			? 'Способ доставки «' + lastRateName + '» недоступен для указанного адреса. Выберите другой способ.'
+			: 'Выберите способ доставки.' );
+		shippingNotice = true;
 	}
 
 	/* ---------- Ошибки ---------- */
@@ -829,11 +864,13 @@
 
 		errorBox.textContent = text && 'Store API error' !== text ? text : 'Не удалось оформить заказ. Попробуйте ещё раз.';
 		errorBox.hidden = false;
+		shippingNotice = false;
 	}
 
 	function hideError() {
 		errorBox.hidden = true;
 		errorBox.textContent = '';
+		shippingNotice = false;
 	}
 
 	/* ---------- Отправка заказа ---------- */
@@ -1035,6 +1072,12 @@
 	} );
 
 	cart.subscribe( function ( state ) {
+		var chosen = selectedRate( state );
+
+		if ( chosen ) {
+			lastRateName = decodeHtml( chosen.name );
+		}
+
 		currentState = state;
 		renderCart( state );
 		renderCheckout( state );

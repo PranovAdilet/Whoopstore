@@ -228,13 +228,28 @@ add_filter( 'woocommerce_package_rates', function ( $rates ) {
 }, 20 );
 
 /**
- * Выбор способа доставки не сбрасывается, когда меняется набор тарифов.
+ * Ключ сессии: выбранный покупателем тариф, который пропал из набора.
+ */
+const WHOOPSTORE_LOST_RATE_SESSION = 'whoopstore_lost_shipping_rate';
+
+/**
+ * Выбор способа доставки не подменяется другим, когда меняется набор тарифов.
  *
  * WooCommerce при смене набора (у города появились или пропали тарифы СДЭК)
  * выбирает первый способ по порядку, оставляя прежний только для самовывоза.
- * Тарифы СДЭК зависят от адреса, поэтому без этого выбор «Экспресса» молча
- * менялся бы на курьера СДЭК, стоит покупателю ввести город, — в том числе в
- * момент оформления. Прежний выбор остаётся, если он по-прежнему доступен.
+ * Тарифы СДЭК зависят от адреса и ответа API СДЭК, поэтому без этого фильтра:
+ *  - выбор «Экспресса» молча менялся бы на курьера СДЭК, стоит покупателю
+ *    ввести город;
+ *  - выбранный курьер СДЭК молча менялся бы на «Экспресс», если СДЭК не знает
+ *    новый город или не ответил (аудит 2026-09-18, I3), — и заказ уходил бы с
+ *    доставкой, которую покупатель не выбирал.
+ *
+ * Поэтому: прежний выбор остаётся, пока он доступен. Пропал — выбора нет
+ * вовсе (''), форма просит выбрать способ заново, а Store API сам отклоняет
+ * оформление без способа доставки. Пропавший тариф помнится в сессии: если он
+ * снова появится (покупатель вернул город), выбор восстанавливается; если
+ * покупатель выбрал другой способ — забывается. Первый выбор в новой корзине
+ * по-прежнему делает WooCommerce (первый способ по порядку).
  *
  * @param string $default       Способ по умолчанию.
  * @param array  $rates         Доступные тарифы.
@@ -242,8 +257,49 @@ add_filter( 'woocommerce_package_rates', function ( $rates ) {
  * @return string
  */
 add_filter( 'woocommerce_shipping_chosen_method', function ( $default, $rates, $chosen_method ) {
-	return ( $chosen_method && isset( $rates[ $chosen_method ] ) ) ? $chosen_method : $default;
+	$session = WC()->session;
+	$lost    = $session ? (string) $session->get( WHOOPSTORE_LOST_RATE_SESSION, '' ) : '';
+
+	if ( $chosen_method && isset( $rates[ $chosen_method ] ) ) {
+		if ( '' !== $lost ) {
+			$session->set( WHOOPSTORE_LOST_RATE_SESSION, null );
+		}
+
+		return $chosen_method;
+	}
+
+	if ( $chosen_method && $session ) {
+		$session->set( WHOOPSTORE_LOST_RATE_SESSION, (string) $chosen_method );
+
+		return '';
+	}
+
+	if ( '' !== $lost ) {
+		if ( isset( $rates[ $lost ] ) ) {
+			$session->set( WHOOPSTORE_LOST_RATE_SESSION, null );
+
+			return $lost;
+		}
+
+		return '';
+	}
+
+	return $default;
 }, 10, 3 );
+
+// Покупатель выбрал способ сам — пропавший больше не ждём.
+add_action( 'woocommerce_store_api_cart_select_shipping_rate', 'whoopstore_forget_lost_shipping_rate' );
+// Новая корзина начинается с выбора по умолчанию, а не с пустого.
+add_action( 'woocommerce_cart_emptied', 'whoopstore_forget_lost_shipping_rate' );
+
+/**
+ * Забыть пропавший тариф (см. фильтр woocommerce_shipping_chosen_method выше).
+ */
+function whoopstore_forget_lost_shipping_rate() {
+	if ( WC()->session ) {
+		WC()->session->set( WHOOPSTORE_LOST_RATE_SESSION, null );
+	}
+}
 
 /**
  * Данные для формы в ответе корзины Store API (extensions.whoopstore.cdek).

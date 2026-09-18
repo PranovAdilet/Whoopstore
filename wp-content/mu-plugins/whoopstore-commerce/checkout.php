@@ -103,7 +103,15 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 		return;
 	}
 
-	$chosen    = (array) WC()->session->get( 'chosen_shipping_methods', [] );
+	$chosen = (array) WC()->session->get( 'chosen_shipping_methods', [] );
+
+	// Способ доставки не выбран (выбранный пропал — cdek.php): адрес проверять
+	// рано, Store API сам откажет с «выберите способ доставки». Иначе покупатель
+	// получил бы не относящееся к делу «Укажите улицу и дом».
+	if ( ! array_filter( $chosen ) ) {
+		return;
+	}
+
 	$is_pickup = (bool) array_filter( $chosen, function ( $rate_id ) {
 		return 0 === strpos( (string) $rate_id, 'local_pickup' );
 	} );
