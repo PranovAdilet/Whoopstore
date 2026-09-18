@@ -1,0 +1,204 @@
+{
+ "items": [
+  {
+   "key": "5ef059938ba799aaa845e1c2e8a762bd",
+   "id": 118,
+   "type": "simple",
+   "quantity": 1,
+   "quantity_limits": {
+    "minimum": 1,
+    "maximum": 9999,
+    "multiple_of": 1,
+    "editable": true
+   },
+   "name": "\u041a\u043e\u0436\u0430\u043d\u044b\u0439 \u043b\u044e\u043a\u0441\u043e\u0432\u044b\u0439 \u0440\u0435\u043c\u0435\u0448\u043e\u043a \u0434\u043b\u044f Whoop 5.0 LeatherLuxe Straight Band Black/Cream with Titanium",
+   "short_description": "",
+   "description": "",
+   "sku": "",
+   "low_stock_remaining": null,
+   "backorders_allowed": false,
+   "show_backorder_badge": false,
+   "sold_individually": false,
+   "permalink": "http://127.0.0.1:8094/product/%d0%ba%d0%be%d0%b6%d0%b0%d0%bd%d1%8b%d0%b9-%d0%bb%d1%8e%d0%ba%d1%81%d0%be%d0%b2%d1%8b%d0%b9-%d1%80%d0%b5%d0%bc%d0%b5%d1%88%d0%be%d0%ba-%d0%b4%d0%bb%d1%8f-whoop-5-0-leatherluxe-straight-band-black-crea/",
+   "images": [
+    {
+     "id": 235,
+     "src": "http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium.webp",
+     "thumbnail": "http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium-300x300.webp",
+     "srcset": "http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium.webp 559w, http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium-300x300.webp 300w, http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium-150x150.webp 150w, http://127.0.0.1:8094/wp-content/uploads/2026/09/straps-50-leatherluxe-straight-black-cream-titanium-120x120.webp 120w",
+     "sizes": "(max-width: 559px) 100vw, 559px",
+     "name": "straps-50-leatherluxe-straight-black-cream-titanium",
+     "alt": "\u041a\u043e\u0436\u0430\u043d\u044b\u0439 \u043b\u044e\u043a\u0441\u043e\u0432\u044b\u0439 \u0440\u0435\u043c\u0435\u0448\u043e\u043a Whoop 5.0 LeatherLuxe Straight Band Black/Cream with Titanium"
+    }
+   ],
+   "variation": [],
+   "item_data": [],
+   "prices": {
+    "price": "1999000",
+    "regular_price": "1999000",
+    "sale_price": "1999000",
+    "price_range": null,
+    "currency_code": "RUB",
+    "currency_symbol": "\u20bd",
+    "currency_minor_unit": 2,
+    "currency_decimal_separator": ",",
+    "currency_thousand_separator": " ",
+    "currency_prefix": "",
+    "currency_suffix": " \u20bd",
+    "raw_prices": {
+     "precision": 6,
+     "price": "19990000000",
+     "regular_price": "19990000000",
+     "sale_price": "19990000000"
+    }
+   },
+   "totals": {
+    "line_subtotal": "1999000",
+    "line_subtotal_tax": "0",
+    "line_total": "1999000",
+    "line_total_tax": "0",
+    "currency_code": "RUB",
+    "currency_symbol": "\u20bd",
+    "currency_minor_unit": 2,
+    "currency_decimal_separator": ",",
+    "currency_thousand_separator": " ",
+    "currency_prefix": "",
+    "currency_suffix": " \u20bd"
+   },
+   "catalog_visibility": "visible",
+   "extensions": {}
+  }
+ ],
+ "coupons": [],
+ "fees": [],
+ "totals": {
+  "total_items": "1999000",
+  "total_items_tax": "0",
+  "total_fees": "0",
+  "total_fees_tax": "0",
+  "total_discount": "0",
+  "total_discount_tax": "0",
+  "total_shipping": "150000",
+  "total_shipping_tax": "0",
+  "total_price": "2149000",
+  "total_tax": "0",
+  "tax_lines": [],
+  "currency_code": "RUB",
+  "currency_symbol": "\u20bd",
+  "currency_minor_unit": 2,
+  "currency_decimal_separator": ",",
+  "currency_thousand_separator": " ",
+  "currency_prefix": "",
+  "currency_suffix": " \u20bd"
+ },
+ "shipping_address": {
+  "first_name": "",
+  "last_name": "",
+  "company": "",
+  "address_1": "",
+  "address_2": "",
+  "city": "",
+  "state": "",
+  "postcode": "",
+  "country": "RU",
+  "phone": ""
+ },
+ "billing_address": {
+  "first_name": "",
+  "last_name": "",
+  "company": "",
+  "address_1": "",
+  "address_2": "",
+  "city": "",
+  "state": "",
+  "postcode": "",
+  "country": "RU",
+  "email": "",
+  "phone": ""
+ },
+ "needs_payment": true,
+ "needs_shipping": true,
+ "payment_requirements": [
+  "products"
+ ],
+ "has_calculated_shipping": true,
+ "shipping_rates": [
+  {
+   "package_id": 0,
+   "name": "\u0414\u043e\u0441\u0442\u0430\u0432\u043a\u0430 1",
+   "destination": {
+    "address_1": "",
+    "address_2": "",
+    "city": "",
+    "state": "",
+    "postcode": "",
+    "country": "RU"
+   },
+   "items": [
+    {
+     "key": "5ef059938ba799aaa845e1c2e8a762bd",
+     "name": "\u041a\u043e\u0436\u0430\u043d\u044b\u0439 \u043b\u044e\u043a\u0441\u043e\u0432\u044b\u0439 \u0440\u0435\u043c\u0435\u0448\u043e\u043a \u0434\u043b\u044f Whoop 5.0 LeatherLuxe Straight Band Black/Cream with Titanium",
+     "quantity": 1
+    }
+   ],
+   "shipping_rates": [
+    {
+     "rate_id": "flat_rate:1",
+     "name": "\u042d\u043a\u0441\u043f\u0440\u0435\u0441\u0441 \u0434\u043e\u0441\u0442\u0430\u0432\u043a\u0430",
+     "description": "\u0434\u0435\u043d\u044c \u0432 \u0434\u0435\u043d\u044c \u043f\u043e \u041c\u043e\u0441\u043a\u0432\u0435",
+     "delivery_time": "",
+     "price": "150000",
+     "taxes": "0",
+     "instance_id": 1,
+     "method_id": "flat_rate",
+     "meta_data": [
+      {
+       "key": "\u0422\u043e\u0432\u0430\u0440\u044b",
+       "value": "\u041a\u043e\u0436\u0430\u043d\u044b\u0439 \u043b\u044e\u043a\u0441\u043e\u0432\u044b\u0439 \u0440\u0435\u043c\u0435\u0448\u043e\u043a \u0434\u043b\u044f Whoop 5.0 LeatherLuxe Straight Band Black/Cream with Titanium &times; 1"
+      }
+     ],
+     "selected": true,
+     "currency_code": "RUB",
+     "currency_symbol": "\u20bd",
+     "currency_minor_unit": 2,
+     "currency_decimal_separator": ",",
+     "currency_thousand_separator": " ",
+     "currency_prefix": "",
+     "currency_suffix": " \u20bd"
+    },
+    {
+     "rate_id": "local_pickup:2",
+     "name": "\u0421\u0430\u043c\u043e\u0432\u044b\u0432\u043e\u0437",
+     "description": "\u041c\u043e\u0441\u043a\u0432\u0430, \u0443\u043b. \u041e\u043b\u0435\u043a\u043e \u0414\u0443\u043d\u0434\u0438\u0447\u0430, 3",
+     "delivery_time": "",
+     "price": "0",
+     "taxes": "0",
+     "instance_id": 2,
+     "method_id": "local_pickup",
+     "meta_data": [
+      {
+       "key": "\u0422\u043e\u0432\u0430\u0440\u044b",
+       "value": "\u041a\u043e\u0436\u0430\u043d\u044b\u0439 \u043b\u044e\u043a\u0441\u043e\u0432\u044b\u0439 \u0440\u0435\u043c\u0435\u0448\u043e\u043a \u0434\u043b\u044f Whoop 5.0 LeatherLuxe Straight Band Black/Cream with Titanium &times; 1"
+      }
+     ],
+     "selected": false,
+     "currency_code": "RUB",
+     "currency_symbol": "\u20bd",
+     "currency_minor_unit": 2,
+     "currency_decimal_separator": ",",
+     "currency_thousand_separator": " ",
+     "currency_prefix": "",
+     "currency_suffix": " \u20bd"
+    }
+   ]
+  }
+ ],
+ "items_count": 1,
+ "items_weight": 0,
+ "cross_sells": [],
+ "errors": [],
+ "payment_methods": [
+  "cheque"
+ ],
+ "extensions": {}
+}
