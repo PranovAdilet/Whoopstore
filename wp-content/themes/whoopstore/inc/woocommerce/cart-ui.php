@@ -205,7 +205,8 @@ function whoopstore_cart_overlays() {
 		</div>
 	</aside>
 
-	<div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="whoopstore-order-modal-title" hidden>
+	<?php $paid_order_number = whoopstore_returned_order_number(); ?>
+	<div class="order-modal" role="dialog" aria-modal="true" aria-labelledby="whoopstore-order-modal-title"<?php echo '' !== $paid_order_number ? ' data-placed-order="' . esc_attr( $paid_order_number ) . '"' : ''; ?> hidden>
 		<div class="order-modal__window">
 			<button type="button" class="cart-drawer__close order-modal__close" aria-label="Закрыть"></button>
 
@@ -215,7 +216,7 @@ function whoopstore_cart_overlays() {
 
 			<p class="cart-plate order-modal__number">
 				<span>Номер заказа</span>
-				<?php /* Номер подставляет скрипт из ответа оформления заказа. */ ?>
+				<?php /* Номер подставляет скрипт из ответа оформления заказа или из data-placed-order. */ ?>
 				<span class="order-modal__number-value"></span>
 			</p>
 
@@ -225,3 +226,63 @@ function whoopstore_cart_overlays() {
 	<?php
 }
 add_action( 'wp_footer', 'whoopstore_cart_overlays' );
+
+/**
+ * Возврат из ЮKassa после успешной оплаты — на Главную с модалкой
+ * «Заказ оформлен» (Figma 30:1006/30:1564).
+ *
+ * Экрана «Заказ получен» в макете нет: конечная точка оформления — эта
+ * модалка. При оплате без перехода её открывает скрипт по ответу оформления,
+ * а при оплате в ЮKassa покупатель уходит с сайта. Плагин ЮKassa, проверив
+ * платёж, отправляет его на «страницу успеха» — в настройках выбрана штатная
+ * «Заказ получен», адрес которой берётся из
+ * WC_Order::get_checkout_order_received_url(). Здесь этот адрес подменяется
+ * только на запросе возврата из ЮKassa (query var yookassa-order-id с ключом
+ * этого же заказа) — остальные ссылки на «Заказ получен» не меняются.
+ * Без темы останется штатная страница WooCommerce.
+ *
+ * @param string   $url   Адрес страницы «Заказ получен».
+ * @param WC_Order $order Заказ.
+ * @return string
+ */
+add_filter( 'woocommerce_get_checkout_order_received_url', function ( $url, $order ) {
+	$return_key = (string) get_query_var( 'yookassa-order-id' );
+
+	if ( '' === $return_key || ! $order instanceof WC_Order
+		|| ! hash_equals( $order->get_order_key(), wc_clean( wp_unslash( $return_key ) ) ) ) {
+		return $url;
+	}
+
+	return add_query_arg(
+		[
+			'order-placed' => $order->get_id(),
+			'key'          => $order->get_order_key(),
+		],
+		home_url( '/' )
+	);
+}, 10, 2 );
+
+/**
+ * Номер заказа для модалки после возврата из оплаты.
+ *
+ * Номер отдаётся, только если ключ в адресе совпал с ключом заказа: по одному
+ * id из адреса чужой номер не показать.
+ *
+ * @return string Номер заказа или пустая строка.
+ */
+function whoopstore_returned_order_number() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- ссылка из редиректа, проверка — ключ заказа.
+	if ( empty( $_GET['order-placed'] ) || empty( $_GET['key'] ) ) {
+		return '';
+	}
+
+	$order = wc_get_order( absint( $_GET['order-placed'] ) );
+	$key   = wc_clean( wp_unslash( $_GET['key'] ) );
+	// phpcs:enable
+
+	if ( ! $order instanceof WC_Order || ! is_string( $key ) || ! hash_equals( $order->get_order_key(), $key ) ) {
+		return '';
+	}
+
+	return (string) $order->get_order_number();
+}

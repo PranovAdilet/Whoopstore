@@ -126,6 +126,17 @@
 		document.body.classList.remove( 'has-cart-drawer' );
 	}
 
+	function showOrderModal( number ) {
+		orderNumber.textContent = number;
+		// data-order — признак того, что модалку открыл код, знающий номер
+		// заказа. Без него CSS её не покажет (см. woocommerce.css): на стенде
+		// ловили «Заказ оформлен» с пустым номером и без запроса к API из
+		// устаревшей копии этого скрипта.
+		modal.dataset.order = number;
+		modal.hidden = false;
+		document.body.classList.add( 'has-cart-drawer' );
+	}
+
 	function closeModal() {
 		modal.hidden = true;
 		delete modal.dataset.order;
@@ -545,15 +556,8 @@
 
 				checkoutForm.reset();
 				pendingRateId = '';
-				orderNumber.textContent = number;
-				// data-order — признак того, что модалку открыл код, получивший
-				// ответ оформления. Без него CSS её не покажет (см.
-				// woocommerce.css): на стенде ловили «Заказ оформлен» с пустым
-				// номером и без запроса к API из устаревшей копии этого скрипта.
-				modal.dataset.order = number;
 				close();
-				modal.hidden = false;
-				document.body.classList.add( 'has-cart-drawer' );
+				showOrderModal( number );
 
 				// Store API уже очистил корзину на сервере — подтягиваем её.
 				return cart.refresh();
@@ -614,4 +618,23 @@
 		renderCart( state );
 		renderCheckout( state );
 	} );
+
+	/* ---------- Возврат после оплаты в ЮKassa ---------- */
+
+	// Номер заказа сервер кладёт в data-placed-order, только если ключ заказа
+	// из адреса совпал (inc/woocommerce/cart-ui.php). Корзину к этому моменту
+	// уже очистил плагин ЮKassa.
+	if ( modal.dataset.placedOrder ) {
+		showOrderModal( modal.dataset.placedOrder );
+
+		// Номер и ключ убираем из адреса: при обновлении страницы модалка не
+		// всплывает повторно, а ключ заказа не остаётся в ссылке.
+		if ( window.history && window.history.replaceState && window.URL ) {
+			var url = new URL( window.location.href );
+
+			url.searchParams.delete( 'order-placed' );
+			url.searchParams.delete( 'key' );
+			window.history.replaceState( null, '', url.pathname + url.search + url.hash );
+		}
+	}
 } )();
