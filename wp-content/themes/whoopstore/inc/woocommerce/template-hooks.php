@@ -30,6 +30,24 @@ add_filter( 'gettext', function ( $translated, $text, $domain ) {
 	return $translated;
 }, 10, 3 );
 
+// Заглушка вместо фото товара (правка 2026-09-18, QA карточки товара).
+// Стандартная картинка WooCommerce — белый квадрат с серым значком — на
+// тёмном сайте выглядела чужеродно. Своя — прозрачный квадрат с приглушённым
+// знаком WHOOP, тот же файл стоит фоном у пустого слота карточки в каталогах.
+// Фильтр штатный: его же используют страница товара и корзина.
+add_filter( 'woocommerce_placeholder_img_src', function () {
+	return get_theme_file_uri( 'assets/icons/product-placeholder.svg' );
+} );
+
+// Подпись заглушки для скринридеров: в русском пакете WooCommerce опечатка —
+// «Ожидается изображения товара». Исправлено только согласование, смысл тот же.
+add_filter( 'gettext', function ( $translated, $text, $domain ) {
+	if ( 'woocommerce' === $domain && 'Awaiting product image' === $text ) {
+		return 'Ожидается изображение товара';
+	}
+	return $translated;
+}, 10, 3 );
+
 // Скрин staging (карточка "Ремешки"): кнопка variable-товара в сетке —
 // "Select options" на английском, та же причина (нет .mo-перевода).
 add_filter( 'gettext', function ( $translated, $text, $domain ) {

@@ -1632,7 +1632,14 @@ a {
 	position: relative;
 	aspect-ratio: 1 / 1;
 	border-radius: var(--wp--custom--radius--card);
-	background: repeating-linear-gradient(135deg, #14171c 0 2px, var(--wp--preset--color--surface) 2px 30px);
+	/* Заглушка для товара без фото (правка 2026-09-18, QA карточки товара):
+	   цвет карточки и приглушённый знак WHOOP по центру — тот же файл, что
+	   WooCommerce отдаёт вместо фото на странице товара и в корзине (фильтр
+	   woocommerce_placeholder_img_src в inc/woocommerce/template-hooks.php).
+	   Раньше здесь была техническая штриховка времён вёрстки. Слот с фото
+	   перекрывает фон целиком (.device-card__media--has-photo), у карточек
+	   тарифов фон снят их собственным правилом. */
+	background: var(--wp--preset--color--surface) url('../icons/product-placeholder.svg') center / contain no-repeat;
 	margin-bottom: 16px;
 }
 
