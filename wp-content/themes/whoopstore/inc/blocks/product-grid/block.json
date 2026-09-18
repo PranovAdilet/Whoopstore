@@ -1,0 +1,40 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "whoopstore/product-grid",
+	"title": "Сетка товаров",
+	"category": "theme",
+	"icon": "screenoptions",
+	"description": "Секция с карточками товаров одной категории WooCommerce: заголовок раздела и сетка карточек. Сохраняется только slug категории — названия, цены и фото берутся из товаров при каждом запросе.",
+	"textdomain": "whoopstore",
+	"attributes": {
+		"category": {
+			"type": "string",
+			"default": ""
+		},
+		"title": {
+			"type": "string",
+			"default": ""
+		},
+		"anchor": {
+			"type": "string",
+			"default": ""
+		},
+		"layout": {
+			"type": "string",
+			"default": "grid"
+		}
+	},
+	"supports": {
+		"html": false,
+		"className": false,
+		"customClassName": false,
+		"anchor": false,
+		"align": false,
+		"spacing": false,
+		"typography": false,
+		"color": false
+	},
+	"editorScript": "whoopstore-block-product-grid",
+	"render": "file:./render.php"
+}

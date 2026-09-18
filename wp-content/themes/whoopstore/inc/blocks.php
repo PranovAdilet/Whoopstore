@@ -76,7 +76,7 @@ function whoopstore_product_category_options() {
 }
 
 add_action( 'init', function () {
-	$blocks = [ 'breadcrumbs', 'category-catalog', 'search-results' ];
+	$blocks = [ 'breadcrumbs', 'category-catalog', 'product-grid', 'search-results' ];
 
 	foreach ( $blocks as $block ) {
 		$handle   = 'whoopstore-block-' . $block;
@@ -96,10 +96,13 @@ add_action( 'init', function () {
 	// Только в админке: на фронте список категорий никому не нужен, а
 	// get_terms() — лишний запрос на каждой странице сайта.
 	if ( is_admin() ) {
-		wp_add_inline_script(
-			'whoopstore-block-category-catalog',
-			'window.whoopstoreProductCategories = ' . wp_json_encode( whoopstore_product_category_options() ) . ';',
-			'before'
-		);
+		// Список один на все блоки, которые выбирают категорию, — считаем его
+		// один раз и отдаём каждому.
+		$whoopstore_categories_js = 'window.whoopstoreProductCategories = '
+			. wp_json_encode( whoopstore_product_category_options() ) . ';';
+
+		foreach ( [ 'category-catalog', 'product-grid' ] as $whoopstore_picker_block ) {
+			wp_add_inline_script( 'whoopstore-block-' . $whoopstore_picker_block, $whoopstore_categories_js, 'before' );
+		}
 	}
 } );
