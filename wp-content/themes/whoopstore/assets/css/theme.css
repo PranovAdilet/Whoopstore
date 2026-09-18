@@ -98,6 +98,7 @@ a {
 .activation-grid,
 .help-block,
 .advantages,
+.advantages-stats,
 .app-promo,
 .audience,
 .no-display,
@@ -1483,6 +1484,60 @@ a {
    остаётся на одной линии с соседями по ряду, высота карточек не разъезжается.
    Это не "класс на каждый экземпляр" (правило 14): отличие реальное, оно
    есть в самом макете. */
+/* Правка 2026-09-18: нижняя половина «Преимуществ» (заголовок, 15 карточек,
+   кнопка) — синхронизированный паттерн «Главная — 15 показателей здоровья»
+   (wp_block 299), отдельная группа .advantages-stats сразу после .advantages.
+   Разметка стала блочной, и правила ниже возвращают прежнюю геометрию там,
+   где её перебивает раскладка ядра. Прежние правила не тронуты.
+
+   1. Отступ секции переехал с заголовка на корень: заголовок теперь первый
+      потомок constrained-группы, и ядро обнуляет ему верх правилом
+      :root :where(.is-layout-constrained) > :first-child (0,2,0) — та же
+      ловушка, что разобрана у .section-canvas.
+   2. Ширина заголовка — на самом <h3>, а не на <span> внутри: span не формат
+      Gutenberg, RichText выбросил бы его при первой правке (приём из
+      .telegram-subscribe__title / .no-display__title). margin-left:0
+      !important — ядро центрирует потомка constrained-группы с собственной
+      max-width через margin-inline:auto !important, а по макету заголовок
+      стоит слева.
+   3. Сетка, карточка и тело карточки — flow-группы, ядро даёт их потомкам
+      margin-block-start:24px (0,1,0). В гриде и во flex-колонке карточки
+      этот отступ сложился бы с gap; раньше это были простые <div>/<span>
+      без таких отступов. Адресно, не «> *»: у заголовка карточки и у
+      подзаголовка «Дополнительно в WHOOP MG:» свои отступы.
+   4. Слот картинки — первый потомок карточки, и правило ядра :first-child
+      (0,2,0) обнулило бы его margin-top:25px из базового правила выше.
+      Значение то же; VO₂ Max ниже по-прежнему перебивает его своими 3px.
+   5. Скрытая часть прячется классом, а не атрибутом hidden: у группы блоков
+      такого атрибута нет. CSS стоит в <head>, поэтому часть скрыта с
+      первой отрисовки — скачка вёрстки нет, как и раньше. Класс is-open
+      ставит assets/js/advantages-more.js. В редакторе часть показывается
+      всегда (assets/css/editor.css), иначе её карточки нельзя было бы
+      править. */
+.advantages-stats {
+	margin-top: var(--wp--custom--section-gap--default, 140px);
+}
+
+.advantages-stats > .advantages__stats-title {
+	max-width: 600px;
+	margin-left: 0 !important;
+}
+
+.advantages__stats > .advantages__stat,
+.advantages__stat > .advantages__stat-body,
+.advantages__stat-body > .advantages__stat-text,
+.advantages__more > .advantages__stats {
+	margin-block-start: 0;
+}
+
+.advantages__stat > .advantages__stat-media {
+	margin-top: 25px;
+}
+
+.advantages__more:not(.is-open) {
+	display: none;
+}
+
 .advantages__stat--media-tall .advantages__stat-media {
 	max-height: 168px;
 	margin-top: 3px;
@@ -4082,6 +4137,7 @@ p.contact-block__legal {
 	.activation-grid,
 	.help-block,
 	.advantages,
+	.advantages-stats,
 	.app-promo,
 	.audience,
 	.no-display,
@@ -4709,6 +4765,13 @@ p.contact-block__legal {
 	.advantages__stats-subtitle {
 		margin-top: 40px;
 		margin-bottom: 12px;
+	}
+
+	/* Пара к правилу 4 из блока «Правка 2026-09-18» выше: там margin-top:25px
+	   поднят до (0,2,0), поэтому мобильный ноль из базового правила слота
+	   картинки (0,1,0) нужно повторить той же специфичностью. */
+	.advantages__stat > .advantages__stat-media {
+		margin-top: 0;
 	}
 
 	/* Правка 2026-09-10 (при вёрстке страницы "Ремешки для WHOOP 5.0"):

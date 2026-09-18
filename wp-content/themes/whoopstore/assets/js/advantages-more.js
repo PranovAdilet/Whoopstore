@@ -1,6 +1,7 @@
 /**
  * Раскрытие/сворачивание секции "Более 15 ключевых показателей…" кнопкой
- * под сеткой (patterns/advantages-sticky-scroll.php).
+ * под сеткой (синхронизированный паттерн «Главная — 15 показателей
+ * здоровья», wp_block 299; до 2026-09-18 — patterns/advantages-sticky-scroll.php).
  *
  * До этой правки кнопка была обычной ссылкой href="#" — клик просто
  * прокручивал страницу в начало ("переносило куда-то"), а остальные
@@ -12,18 +13,23 @@
  * Сворачивание — решение сверх макета, по прямой просьбе пользователя:
  * в кадре "Раскрытый" кнопки под сеткой нет вообще, то есть в Figma это
  * одноразовое раскрытие без обратного хода, и подписи "Свернуть" в макете
- * не существует. Обе подписи берутся из data-атрибутов разметки, чтобы
- * текст правился там же, где остальной текст секции.
+ * не существует. «Посмотреть ещё» — текст самой кнопки, он правится в
+ * редакторе вместе с остальным текстом секции. «Свернуть» — константа ниже:
+ * раньше обе подписи лежали в data-атрибутах сырого HTML, но скрытая часть
+ * теперь группа блоков, а у core/group таких атрибутов нет.
  *
  * Разметка кнопки — штатный core/button (ссылка), чтобы блок остался
  * валидным для редактора; семантику раскрывающего элемента
  * (role/aria-expanded/aria-controls) навешивает этот скрипт, он же и
  * отменяет переход по href.
  *
- * Прогрессивное улучшение: hidden стоит в самой разметке (без JS часть
- * карточек не видна, но они есть в DOM и индексируются). Наоборот —
- * показывать всё и схлопывать скриптом — нельзя: footer-скрипт выполняется
- * после первой отрисовки, был бы видимый скачок вёрстки.
+ * Прогрессивное улучшение: часть скрыта правилом
+ * .advantages__more:not(.is-open) из theme.css, которое стоит в <head> (без
+ * JS карточки не видны, но они есть в DOM и индексируются). Скрипт только
+ * переключает класс is-open. Наоборот — показывать всё и схлопывать
+ * скриптом — нельзя: footer-скрипт выполняется после первой отрисовки, был бы
+ * видимый скачок вёрстки. Раньше скрывал атрибут hidden, но у группы блоков
+ * его нет.
  */
 ( function () {
 	var toggle = document.querySelector( '.advantages__more-toggle .wp-block-button__link' );
@@ -33,8 +39,8 @@
 		return;
 	}
 
-	var labelMore = more.getAttribute( 'data-label-more' ) || toggle.textContent;
-	var labelLess = more.getAttribute( 'data-label-less' ) || labelMore;
+	var labelMore = toggle.textContent;
+	var labelLess = 'Свернуть';
 
 	toggle.setAttribute( 'role', 'button' );
 	toggle.setAttribute( 'aria-controls', 'advantages-more' );
@@ -43,9 +49,8 @@
 	toggle.addEventListener( 'click', function ( event ) {
 		event.preventDefault();
 
-		var expanded = more.hidden;
+		var expanded = more.classList.toggle( 'is-open' );
 
-		more.hidden = ! expanded;
 		toggle.textContent = expanded ? labelLess : labelMore;
 		toggle.setAttribute( 'aria-expanded', expanded ? 'true' : 'false' );
 
