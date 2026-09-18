@@ -143,3 +143,28 @@ add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
 
 	return $gateways;
 } );
+
+/**
+ * ЮKassa на staging — только с тестовым ключом.
+ *
+ * Правило проекта: на staging никаких боевых ключей и реальных списаний.
+ * Тестовый секретный ключ ЮKassa начинается с «test_», боевой — с «live_».
+ * С любым другим ключом (или без него — например, при подключении через
+ * OAuth, где тест от боя здесь не отличить) способы оплаты ЮKassa на staging
+ * покупателю не предлагаются, и форма оформления берёт «Тестовую оплату».
+ * На боевом окружении фильтр ничего не делает.
+ */
+add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
+	if ( 'staging' !== wp_get_environment_type()
+		|| 0 === strpos( (string) get_option( 'yookassa_shop_password' ), 'test_' ) ) {
+		return $gateways;
+	}
+
+	foreach ( array_keys( $gateways ) as $id ) {
+		if ( 0 === strpos( (string) $id, 'yookassa' ) ) {
+			unset( $gateways[ $id ] );
+		}
+	}
+
+	return $gateways;
+} );
