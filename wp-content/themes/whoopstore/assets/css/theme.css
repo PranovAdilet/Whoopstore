@@ -3300,6 +3300,18 @@ p.contact-block__legal {
 	max-width: 323px;
 }
 
+/* То же ограничение, но на самом заголовке (2026-09-18). Внутренний <span> убран
+   из контента: это не формат Gutenberg, и RichText выбросил бы его при первой
+   правке заголовка заказчиком — ширина молча слетела бы. Раньше вешать max-width
+   на сам <h2> было нельзя: ядро центрирует прямого потомка .is-layout-constrained
+   через margin-inline:auto !important. После этапа 6.1 .telegram-subscribe__content
+   — flow-контейнер, и это ограничение отпало.
+   Правило для span оставлено: старый patterns/telegram-subscribe.php ещё лежит
+   в репозитории как точка отката. */
+.telegram-subscribe__title {
+	max-width: 323px;
+}
+
 .telegram-subscribe__text {
 	margin-top: 12px;
 	max-width: 460px;
@@ -5487,6 +5499,18 @@ p.contact-block__legal {
 		max-width: 244px;
 	}
 
+	/* То же ограничение на самом заголовке — внутренний <span> убран из контента
+	   (см. комментарий у .telegram-subscribe__title). Здесь .no-display остаётся
+	   constrained-контейнером, поэтому нужен margin-left:0 !important: ядро
+	   вешает на потомка с собственной max-width margin-left/right:auto !important
+	   и центрирует его, а по макету заголовок стоит по левому краю. Перебиваем
+	   только левую сторону — правый auto на левовыровненном блоке ни на что не
+	   влияет. Тот же приём уже применён у .telegram-subscribe__text. */
+	.no-display__title {
+		max-width: 244px;
+		margin-left: 0 !important;
+	}
+
 	/* Правка 2026-09-09 (round 5): mobile-геометрия карточки из raw-дампа
 	   (homepage-mobile.code.tsx.txt, узлы 1:3743-1:3752) — своя, отличается
 	   от desktop в 2 местах: (1) radius 10px, не 20 (тот же паттерн, что
@@ -5698,6 +5722,10 @@ p.contact-block__legal {
 	   упиралась в колонку 320px). Размер шрифта (26px/-0.26px) уже
 	   приходит из общего mobile-оверрайда .section-heading. */
 	.telegram-subscribe__title-text {
+		max-width: 266px;
+	}
+
+	.telegram-subscribe__title {
 		max-width: 266px;
 	}
 
