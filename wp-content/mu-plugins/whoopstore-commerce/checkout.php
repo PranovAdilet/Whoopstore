@@ -118,6 +118,24 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 		'address_1' => 'улицу и дом',
 	];
 
+	// СДЭК до пункта выдачи (cdek.php): нужен выбранный ПВЗ, из адреса — только
+	// город, по которому считался тариф. Плагин при оформлении через Store API
+	// выбор ПВЗ не проверяет.
+	$cdek_kind = function_exists( 'whoopstore_cdek_chosen_kind' ) ? whoopstore_cdek_chosen_kind() : '';
+
+	if ( in_array( $cdek_kind, [ 'office', 'postamat' ], true ) ) {
+		$office = whoopstore_cdek_requested_office( $request );
+
+		if ( ! $office ) {
+			throw new RouteException( 'whoopstore_cdek_office_required', __( 'Order pickup point not selected.', 'cdekdelivery' ), 400 );
+		}
+
+		$order->update_meta_data( WHOOPSTORE_CDEK_OFFICE_META, '' !== $office['address'] ? $office['code'] . ' — ' . $office['address'] : $office['code'] );
+		$required = [ 'city' => 'город' ];
+	} elseif ( function_exists( 'whoopstore_cdek_chosen_kind' ) ) {
+		$order->delete_meta_data( WHOOPSTORE_CDEK_OFFICE_META );
+	}
+
 	foreach ( $required as $key => $label ) {
 		$getter = 'get_shipping_' . $key;
 
