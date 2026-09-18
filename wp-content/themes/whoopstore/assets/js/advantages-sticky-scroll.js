@@ -40,20 +40,11 @@
 
 	root.classList.add( 'is-pinned' );
 
-	// Читать переменные можно только после .is-pinned — они объявлены
-	// именно в этом правиле (в базовом состоянии высоты дорожки нет).
-	var styles = window.getComputedStyle( root );
-	var introLength = parseFloat( styles.getPropertyValue( '--advantages-intro' ) ) || 50;
-	var stepLength = parseFloat( styles.getPropertyValue( '--advantages-step' ) ) || 75;
-
-	// Доля пути, которую занимает фаза заголовка; остальное делится поровну
-	// между слайдами.
-	var introShare = introLength / ( introLength + slides.length * stepLength );
-
 	var activeIndex = -1;
 	var ticking = false;
 	var pinHeight = 0;
 	var pinTop = 0;
+	var introShare = 0;
 
 	// Залипающая коробка ровно по высоте композиции, поэтому её высоту и
 	// смещения для центровки в окне знает только рантайм: всё это зависит
@@ -73,8 +64,15 @@
 	// содержимое переполнено, то есть ровно в схлопнутом состоянии; отступ
 	// до композиции (padding-bottom) поэтому читается отдельно — он не
 	// анимируется и одинаков в обоих состояниях.
-	function centerOffset( height ) {
-		var free = window.innerHeight - height;
+	//
+	// Центруется коробка не по window.innerHeight, а по высоте окна в svh
+	// (правка 2026-09-18, баг на mobile): innerHeight меняется, когда
+	// браузер прячет/показывает адресную строку, это приходит событием
+	// resize посреди прокрутки — и телефон съезжал на 40–50px, а вместе с
+	// ним сдвигались точки переключения слайдов. svh от адресной строки не
+	// зависит, и дорожка в CSS считается в той же единице.
+	function centerOffset( height, viewport ) {
+		var free = viewport - height;
 
 		// Композиция выше окна (короткие мобильные экраны) — тогда пин
 		// прижимается к верху: обрезать её сверху центровкой нельзя.
@@ -82,20 +80,39 @@
 	}
 
 	function measure() {
+		// Длины фаз читаются здесь, а не один раз при старте: на mobile шаг
+		// слайда другой (см. @media в theme.css), и поворот экрана может
+		// перевести страницу через брейкпоинт.
+		var styles = window.getComputedStyle( root );
+		var introLength = parseFloat( styles.getPropertyValue( '--advantages-intro' ) ) || 30;
+		var stepLength = parseFloat( styles.getPropertyValue( '--advantages-step' ) ) || 40;
+		var pathLength = introLength + slides.length * stepLength;
+
+		// Доля пути, которую занимает фаза заголовка; остальное делится
+		// поровну между слайдами.
+		introShare = introLength / pathLength;
+
 		var titleSpace = titleText.offsetHeight +
 			( parseFloat( window.getComputedStyle( title ).paddingBottom ) || 0 );
 		var stageHeight = stage.offsetHeight;
 
 		pinHeight = stageHeight + titleSpace;
-		pinTop = centerOffset( pinHeight );
-
 		root.style.setProperty( '--advantages-pin-height', pinHeight + 'px' );
+
+		// Высота окна в svh: сам JS эту единицу не знает, но её уже
+		// применил CSS — дорожка = pinHeight + pathLength svh. Поэтому
+		// читаем высоту дорожки после установки pinHeight выше. Без svh
+		// (старые браузеры) CSS берёт vh, и эта же формула вернёт vh.
+		var viewport = ( root.offsetHeight - pinHeight ) / pathLength * 100;
+
+		pinTop = centerOffset( pinHeight, viewport );
+
 		root.style.setProperty( '--advantages-pin-title-space', titleSpace + 'px' );
 		root.style.setProperty( '--advantages-pin-top', pinTop + 'px' );
 
 		// Состояние после схлопывания заголовка: коробка короче ровно на
 		// его место, центр экрана для неё другой.
-		root.style.setProperty( '--advantages-pin-top-collapsed', centerOffset( stageHeight ) + 'px' );
+		root.style.setProperty( '--advantages-pin-top-collapsed', centerOffset( stageHeight, viewport ) + 'px' );
 	}
 
 	function render() {
@@ -132,6 +149,8 @@
 			return;
 		}
 
+		var previousIndex = activeIndex;
+
 		activeIndex = index;
 
 		// .is-past/.is-active задают направление перехода: уходящий экран
@@ -139,9 +158,15 @@
 		// theme.css). Без деления на «до» и «после» при скролле вверх
 		// картинка возвращалась бы с той же стороны, что и при скролле вниз,
 		// и движение перестало бы читаться как прокрутка.
+		//
+		// .is-leaving — только что ушедший слайд: анимируются лишь он и
+		// новый активный. Быстрый свайп на mobile перескакивает через
+		// несколько слайдов за кадр, и без этого пропущенные экраны
+		// пролетали сквозь стекло вместе с уходящим и приходящим.
 		for ( var i = 0; i < slides.length; i++ ) {
 			slides[ i ].classList.toggle( 'is-active', i === index );
 			slides[ i ].classList.toggle( 'is-past', i < index );
+			slides[ i ].classList.toggle( 'is-leaving', i === previousIndex );
 		}
 	}
 

@@ -1174,8 +1174,18 @@ a {
    так что высота окна не схлопывается, когда картинка уехала за край. */
 .advantages__scroll.is-pinned .advantages__screen img {
 	transform: translateY(100%);
-	transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 	will-change: transform;
+}
+
+/* Анимируются только два слайда перехода — новый активный и только что
+   ушедший (.is-leaving ставит скрипт). Остальные меняют положение
+   мгновенно, за краем стекла, поэтому не видны. Правка 2026-09-18 (баг на
+   mobile): transition висел на всех слайдах, и быстрый свайп, который за
+   кадр перескакивает через 2–3 слайда, прогонял пропущенные экраны снизу
+   вверх сквозь стекло — одновременно с уходящим и приходящим. */
+.advantages__scroll.is-pinned .advantages__slide.is-active .advantages__screen img,
+.advantages__scroll.is-pinned .advantages__slide.is-leaving .advantages__screen img {
+	transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .advantages__scroll.is-pinned .advantages__slide.is-past .advantages__screen img {
@@ -1220,6 +1230,11 @@ a {
 .advantages__scroll.is-pinned .advantages__caption {
 	opacity: 0;
 	transform: translateY(24px);
+}
+
+/* Как и у экранов выше — анимируются только два слайда перехода. */
+.advantages__scroll.is-pinned .advantages__slide.is-active .advantages__caption,
+.advantages__scroll.is-pinned .advantages__slide.is-leaving .advantages__caption {
 	transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -4570,6 +4585,16 @@ p.contact-block__legal {
 	   одного экрана нет. */
 	.advantages__scroll.is-pinned .advantages__phone {
 		max-width: 220px;
+	}
+
+	/* Шаг слайда на mobile длиннее desktop-ного (правка 2026-09-18, баг
+	   «слишком быстро листается»). 40svh — это 4–5 щелчков колеса на
+	   desktop, но на телефоне всего ~260px, а обычный свайп с инерцией
+	   проезжает 1000–3000px, то есть пролетал 3–5 слайдов разом. 75svh ≈
+	   500px — примерно один неторопливый свайп на слайд. Скрипт читает эту
+	   же переменную, отдельно ему число не передаётся. */
+	.advantages__scroll.is-pinned {
+		--advantages-step: 75;
 	}
 
 	/* Правка 2026-09-10 (визуальный диф скрина Figma-мобилки vs стейдж,
