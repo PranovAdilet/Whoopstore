@@ -5,6 +5,10 @@
  * По ТЗ в сообщении: имя, телефон, состав корзины, адрес, сумма. Сюда же —
  * e-mail, Telegram покупателя, способ доставки и оплаты, комментарий.
  *
+ * Когда уходит: при онлайн-оплате (ЮKassa) — только после подтверждённой
+ * оплаты, иначе менеджер получал бы и заказы, брошенные на странице оплаты,
+ * не отличая их от оплаченных. При остальных способах — в момент оформления.
+ *
  * Секреты — только в wp-config.php, не в БД и не в git:
  *   define( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN', '...' );
  *   define( 'WHOOPSTORE_TELEGRAM_CHAT_ID', '...' );
@@ -65,8 +69,9 @@ function whoopstore_telegram_price( $amount, $order ) {
 function whoopstore_telegram_message( $order ) {
 	$lines   = [];
 	$lines[] = 'Новый заказ №' . $order->get_order_number();
-	// Статус не пишем: уведомление уходит в момент оформления, до оплаты, и
-	// статус в этот момент — ещё черновик. Способ оплаты — в конце сообщения.
+	// Статус не пишем: при оплате без перехода уведомление уходит в момент
+	// оформления, и статус тогда — ещё черновик. Способ оплаты — в конце
+	// сообщения, с отметкой, если заказ уже оплачен.
 	$lines[] = '';
 	$lines[] = 'Имя: ' . trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
 	$lines[] = 'Телефон: ' . $order->get_billing_phone();
@@ -113,16 +118,30 @@ function whoopstore_telegram_message( $order ) {
 		$lines[] = 'Комментарий: ' . $order->get_customer_note();
 	}
 
-	$lines[] = 'Оплата: ' . $order->get_payment_method_title();
+	$lines[] = 'Оплата: ' . $order->get_payment_method_title() . ( $order->is_paid() ? ' — оплачено' : '' );
 	$lines[] = 'Итого: ' . whoopstore_telegram_price( $order->get_total(), $order );
 
 	return implode( "\n", $lines );
 }
 
 /**
+ * Оплачивается ли заказ онлайн — через ЮKassa (id всех её способов оплаты
+ * начинаются с «yookassa»).
+ *
+ * @param WC_Order $order Заказ.
+ * @return bool
+ */
+function whoopstore_is_online_payment( $order ) {
+	return 0 === strpos( (string) $order->get_payment_method(), 'yookassa' );
+}
+
+/**
  * Отправляет (или, без настроек, журналирует) уведомление о заказе.
  *
  * Повторно по тому же заказу не срабатывает — отметка в мета заказа.
+ * Неоплаченный заказ с онлайн-оплатой пропускается без отметки: уведомление
+ * уйдёт, когда оплата подтвердится (woocommerce_payment_complete ниже).
+ * Повторные попытки оплаты того же заказа его не дублируют.
  *
  * @param WC_Order|int $order Заказ или его id.
  */
@@ -130,6 +149,10 @@ function whoopstore_telegram_notify_order( $order ) {
 	$order = $order instanceof WC_Order ? $order : wc_get_order( $order );
 
 	if ( ! $order || $order->get_meta( '_whoopstore_telegram_notified' ) ) {
+		return;
+	}
+
+	if ( whoopstore_is_online_payment( $order ) && ! $order->is_paid() ) {
 		return;
 	}
 
@@ -178,5 +201,11 @@ function whoopstore_telegram_notify_order( $order ) {
 // страницы /checkout/.
 add_action( 'woocommerce_store_api_checkout_order_processed', 'whoopstore_telegram_notify_order' );
 add_action( 'woocommerce_checkout_order_processed', function ( $order_id ) {
+	whoopstore_telegram_notify_order( $order_id );
+} );
+
+// Подтверждённая оплата: ЮKassa вызывает WC_Order::payment_complete() по
+// уведомлению о платеже, после этого заказ уже в статусе «Обработка».
+add_action( 'woocommerce_payment_complete', function ( $order_id ) {
 	whoopstore_telegram_notify_order( $order_id );
 } );
