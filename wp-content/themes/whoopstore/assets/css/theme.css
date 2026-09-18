@@ -105,10 +105,22 @@ a {
 .contact-block,
 .tile-grid,
 .catalog-section,
+.site-header,
+.site-footer,
+.section-canvas,
 .compare {
 	padding-left: 40px;
 	padding-right: 40px;
 }
+
+/* Правка 2026-09-18 (QA Главной): шапка, подвал и холст .section-canvas
+   (промо ремешков, баннер «WHOOP непрерывно анализирует», «Персонализируйте»,
+   «Телеграм») добавлены в список выше. Их содержимое ограничено 1120px, а
+   собственных боковых полей не было: на 1440 его центрирует холст 1200px, но
+   на 782–1120px оно упиралось в края экрана. На 1200 и шире поле 40px ничего
+   не меняет — 1120px в него помещаются. На mobile шапка получает 20px своим
+   правилом, подвал — из мобильного списка, а у .section-canvas поле там
+   снимается: у её карточек уже есть свои 20px. */
 
 /* Внешний "резерв под фон" для .straps-carousel/.analytics-banner/
    .telegram-subscribe (см. patterns/straps-promo.php,
@@ -4144,9 +4156,18 @@ p.contact-block__legal {
 	.contact-block,
 	.tile-grid,
 	.catalog-section,
+	.site-footer,
 	.compare {
 		padding-left: 20px;
 		padding-right: 20px;
+	}
+
+	/* Пара к общему списку полей 40px (см. «Правка 2026-09-18» выше): на
+	   mobile поле у холста не нужно — его карточки держат свои 20px, и двойной
+	   отступ изменил бы принятый мобильный вид. */
+	.section-canvas {
+		padding-left: 0;
+		padding-right: 0;
 	}
 
 	.analytics-banner__title {
