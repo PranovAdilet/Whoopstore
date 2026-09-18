@@ -18,7 +18,9 @@
  *    соответствие «тариф → курьер / ПВЗ» — отдельные данные корзины Store API;
  *  - при оформлении через Store API плагин не проверяет, выбран ли ПВЗ, —
  *    проверка в whoopstore_validate_checkout_request() (checkout.php);
- *  - адрес выбранного ПВЗ сохраняется в заказе для уведомления в Telegram.
+ *  - адрес выбранного ПВЗ сохраняется в заказе для уведомления в Telegram;
+ *  - без ключа Яндекс.Карт доставка до ПВЗ не предлагается: карта без ключа
+ *    пустая, а без пункта заказ не оформить.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -36,6 +38,25 @@ const WHOOPSTORE_CDEK_OFFICE_META = '_whoopstore_cdek_office';
 function whoopstore_cdek_available() {
 	return class_exists( '\Cdek\Model\Tariff' ) && class_exists( '\Cdek\MetaKeys' );
 }
+
+/**
+ * Карта пунктов выдачи может работать: в настройках СДЭК есть ключ
+ * Яндекс.Карт. Ключ «по умолчанию» в виджете СДЭК — не ключ Яндекса, без
+ * своего ключа карта открывается пустой (проверено в браузере 2026-09-18).
+ *
+ * @return bool
+ */
+function whoopstore_cdek_map_ready() {
+	$settings = (array) get_option( 'woocommerce_official_cdek_settings', [] );
+
+	return '' !== trim( (string) ( $settings['yandex_map_api_key'] ?? '' ) );
+}
+
+// Настройки СДЭК изменились (например, вписан ключ Яндекс.Карт) — сбрасываем
+// кэш тарифов в сессиях покупателей, как WooCommerce при правке доставки.
+add_action( 'update_option_woocommerce_official_cdek_settings', function () {
+	WC_Cache_Helper::get_transient_version( 'shipping', true );
+} );
 
 /**
  * Включённый способ «СДЭК» в зоне доставки (первый найденный).
@@ -178,8 +199,20 @@ add_filter( 'woocommerce_package_rates', function ( $rates ) {
 		return $rates;
 	}
 
-	foreach ( $rates as $rate ) {
+	$map_ready = whoopstore_cdek_map_ready();
+
+	foreach ( $rates as $rate_id => $rate ) {
 		if ( WHOOPSTORE_CDEK_METHOD !== $rate->get_method_id() ) {
+			continue;
+		}
+
+		$meta = $rate->get_meta_data();
+		$kind = whoopstore_cdek_tariff_kind( $meta[ \Cdek\MetaKeys::TARIFF_CODE ] ?? 0 );
+
+		// Без ключа Яндекс.Карт пункт выдачи не выбрать — такой заказ не
+		// оформить, поэтому доставку до ПВЗ и постамата не предлагаем.
+		if ( ! $map_ready && in_array( $kind, [ 'office', 'postamat' ], true ) ) {
+			unset( $rates[ $rate_id ] );
 			continue;
 		}
 
@@ -188,8 +221,6 @@ add_filter( 'woocommerce_package_rates', function ( $rates ) {
 			$rate->set_delivery_time( trim( $match[2] ) );
 		}
 
-		$meta = $rate->get_meta_data();
-		$kind = whoopstore_cdek_tariff_kind( $meta[ \Cdek\MetaKeys::TARIFF_CODE ] ?? 0 );
 		$rate->set_description( whoopstore_cdek_caption( $kind, WC_Shipping_Zones::get_shipping_method( $rate->get_instance_id() ) ?: null ) );
 	}
 
@@ -261,7 +292,7 @@ function whoopstore_cdek_cart_data() {
 		$kind = whoopstore_cdek_tariff_kind( $code );
 		$slot = 'door' === $kind ? 'door' : 'office';
 
-		if ( '' === $kind || isset( $tiles[ $slot ] ) ) {
+		if ( '' === $kind || isset( $tiles[ $slot ] ) || ( 'office' === $slot && ! whoopstore_cdek_map_ready() ) ) {
 			continue;
 		}
 
