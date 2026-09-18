@@ -195,6 +195,13 @@ function whoopstore_telegram_message( $order ) {
 		$lines[] = 'Адрес: ' . implode( ', ', $address );
 	}
 
+	// СДЭК до пункта выдачи: код и адрес ПВЗ (сохраняются при оформлении, cdek.php).
+	$office = function_exists( 'whoopstore_cdek_order_office' ) ? whoopstore_cdek_order_office( $order ) : '';
+
+	if ( '' !== $office ) {
+		$lines[] = 'ПВЗ СДЭК: ' . $office;
+	}
+
 	if ( '' !== $order->get_customer_note() ) {
 		$lines[] = 'Комментарий: ' . $order->get_customer_note();
 	}
