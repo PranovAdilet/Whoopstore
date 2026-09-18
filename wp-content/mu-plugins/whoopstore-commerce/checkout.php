@@ -168,3 +168,27 @@ add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
 
 	return $gateways;
 } );
+
+/**
+ * Выключенный «Плати частями» ЮKassa не грузит свой виджет.
+ *
+ * ЮKassa 2.17.1 (YooKassaSberBnpl::showInfo() и соседние методы) подключает
+ * скрипт виджета с yookassa.ru и свои стили на странице товара ещё до
+ * проверки, включён ли способ. Способ выключен — снимаем их из очереди, пока
+ * они не выведены: в блочной теме страница собирается до wp_head, в
+ * классической вывод может быть и позже — отсюда два хука. Стиль общий с
+ * блоком рассрочки, поэтому он снимается, только если выключено и то и другое.
+ */
+function whoopstore_dequeue_disabled_yookassa_widgets() {
+	if ( '1' === get_option( 'yookassa_sber_bnpl_enabled' ) ) {
+		return;
+	}
+
+	wp_dequeue_script( 'yookassa-sber-bnpl-widget' );
+
+	if ( '1' !== get_option( 'yookassa_epl_installments' ) && '1' !== get_option( 'yookassa_add_installments_block' ) ) {
+		wp_dequeue_style( 'yookassa' );
+	}
+}
+add_action( 'wp_head', 'whoopstore_dequeue_disabled_yookassa_widgets', 0 );
+add_action( 'wp_footer', 'whoopstore_dequeue_disabled_yookassa_widgets', 0 );
