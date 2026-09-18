@@ -405,11 +405,48 @@ function whoopstore_cdek_cart_data() {
 }
 
 /**
- * Выбранный ПВЗ: код из запроса оформления и адрес из списка пунктов плагина
- * (тот же список, что форма показывала на карте, — берётся из кэша плагина).
+ * Пункты выдачи города покупателя — тот же список, что плагин отдаёт форме
+ * в корзине Store API (extensions.official_cdek.points) и что форма
+ * показывает на карте.
+ *
+ * Берётся штатным методом плагина: он сам определяет город и индекс
+ * покупателя, отдаёт список из своего кэша в сессии (5 минут) и, только если
+ * кэш истёк, запрашивает СДЭК заново — ровно так же, как при каждом чтении
+ * корзины. Своего запроса к API здесь нет.
+ *
+ * @return array[]|null Пункты или null, если список получить нельзя (СДЭК не
+ *                      ответил, город не определён, плагин изменился).
+ */
+function whoopstore_cdek_office_list() {
+	if ( ! is_callable( [ '\Cdek\Blocks\CheckoutMapBlock', 'extend_cart_data' ] ) ) {
+		return null;
+	}
+
+	try {
+		$data = \Cdek\Blocks\CheckoutMapBlock::extend_cart_data();
+	} catch ( Throwable $e ) {
+		return null;
+	}
+
+	// Без кода города плагин отдаёт '[]' и при ошибке API — пустой список
+	// здесь не значит «пунктов нет».
+	if ( empty( $data['city'] ) ) {
+		return null;
+	}
+
+	$points = json_decode( (string) ( $data['points'] ?? '' ), true );
+
+	return is_array( $points ) && array_values( $points ) === $points ? $points : null;
+}
+
+/**
+ * Выбранный ПВЗ: код из запроса оформления, сверенный со списком пунктов
+ * города (whoopstore_cdek_office_list()).
  *
  * @param WP_REST_Request $request Запрос оформления.
- * @return array{code: string, address: string}|null
+ * @return array{code: string, address: string, type: string, verified: bool, found: bool}|null
+ *         null — код не передан; verified — список пунктов получен и код
+ *         сверен с ним; found — код в этом списке есть.
  */
 function whoopstore_cdek_requested_office( $request ) {
 	$code = $request['extensions']['official_cdek']['office_code'] ?? '';
@@ -419,25 +456,31 @@ function whoopstore_cdek_requested_office( $request ) {
 		return null;
 	}
 
-	$address = '';
-	$city    = WC()->customer ? WC()->customer->get_shipping_city() : '';
+	$office = [
+		'code'     => $code,
+		'address'  => '',
+		'type'     => '',
+		'verified' => false,
+		'found'    => false,
+	];
+	$points = whoopstore_cdek_office_list();
 
-	if ( '' !== $city && class_exists( '\Cdek\Helpers\OfficeListCache' ) ) {
-		$cached = \Cdek\Helpers\OfficeListCache::get( $city, WC()->customer->get_shipping_postcode() );
-		$points = json_decode( (string) ( $cached['points'] ?? '[]' ), true );
+	if ( null === $points ) {
+		return $office;
+	}
 
-		foreach ( is_array( $points ) ? $points : [] as $point ) {
-			if ( isset( $point['code'] ) && $point['code'] === $code ) {
-				$address = (string) ( $point['location']['address_full'] ?? $point['location']['address'] ?? '' );
-				break;
-			}
+	$office['verified'] = true;
+
+	foreach ( $points as $point ) {
+		if ( isset( $point['code'] ) && $point['code'] === $code ) {
+			$office['found']   = true;
+			$office['type']    = (string) ( $point['type'] ?? '' );
+			$office['address'] = (string) ( $point['location']['address_full'] ?? $point['location']['address'] ?? '' );
+			break;
 		}
 	}
 
-	return [
-		'code'    => $code,
-		'address' => $address,
-	];
+	return $office;
 }
 
 /**

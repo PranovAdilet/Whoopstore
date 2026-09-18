@@ -128,7 +128,7 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 
 	// СДЭК до пункта выдачи (cdek.php): нужен выбранный ПВЗ, из адреса — только
 	// город, по которому считался тариф. Плагин при оформлении через Store API
-	// выбор ПВЗ не проверяет.
+	// выбор ПВЗ не проверяет и сохраняет любой присланный код.
 	$cdek_kind = function_exists( 'whoopstore_cdek_chosen_kind' ) ? whoopstore_cdek_chosen_kind() : '';
 
 	if ( in_array( $cdek_kind, [ 'office', 'postamat' ], true ) ) {
@@ -136,6 +136,17 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 
 		if ( ! $office ) {
 			throw new RouteException( 'whoopstore_cdek_office_required', __( 'Order pickup point not selected.', 'cdekdelivery' ), 400 );
+		}
+
+		// Код сверяется со списком пунктов города — тем, что форма показывала
+		// на карте, — и с типом пункта, куда везёт тариф (ПВЗ или постамат).
+		// Если СДЭК не отдал список (сбой API), код принимается без сверки, как
+		// раньше: отказывать в заказе из-за сбоя на стороне СДЭК нельзя, а
+		// менеджер увидит код ПВЗ без адреса.
+		$expected_type = 'postamat' === $cdek_kind ? 'POSTAMAT' : 'PVZ';
+
+		if ( $office['verified'] && ( ! $office['found'] || $expected_type !== $office['type'] ) ) {
+			throw new RouteException( 'whoopstore_cdek_office_invalid', 'Выбранный пункт выдачи недоступен для этого адреса. Выберите пункт на карте заново.', 400 );
 		}
 
 		$order->update_meta_data( WHOOPSTORE_CDEK_OFFICE_META, '' !== $office['address'] ? $office['code'] . ' — ' . $office['address'] : $office['code'] );
