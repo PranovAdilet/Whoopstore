@@ -2270,7 +2270,10 @@ a {
 	display: flex;
 	align-items: center;
 	gap: 24px;
-	height: 372px;
+	/* min-height, а не height (правка 2026-09-18, QA Главной, Д-4): при
+	   жёсткой высоте на узком desktop текст переставал помещаться и вылезал
+	   за карточку сверху и снизу. Пока содержимое влезает, вид тот же. */
+	min-height: 372px;
 	padding: 40px;
 	text-align: center;
 }
@@ -5554,6 +5557,7 @@ p.contact-block__legal {
 	   поэтому gap:0 и явный margin у каждого элемента. */
 	.analytics-banner {
 		height: auto;
+		min-height: 0;
 		gap: 0;
 		padding: 30px;
 		align-items: stretch;
@@ -6247,5 +6251,44 @@ p.contact-block__legal {
 	.accessories-grid__list,
 	.catalog-section__list:not(:has(> .device-card--plan)) {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* Правка 2026-09-18 (QA Главной, дефекты Д-3 и Д-4): узкий desktop, 782–1046px.
+
+   Д-3 «Почему у WHOOP нет экрана?»: картинка стоит абсолютно (68px от
+   правого края, ширина 425px), текст занимает слева 86 + 388px. Они
+   пересекаются, когда карточка уже 967px, то есть на экране ≤1046px (поля
+   секции 2×40). Здесь картинка уходит в поток под текст и встаёт по центру,
+   прижатая к нижнему краю, — та же схема, что уже работает на mobile.
+
+   Д-4 «WHOOP непрерывно анализирует»: картинка 448px не сужается, и колонке
+   текста остаётся всё меньше места. Здесь картинка встаёт над текстом, как
+   на mobile; зазор — прежний gap: 24px. */
+@media (min-width: 782px) and (max-width: 1046px) {
+	.no-display__card {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		min-height: 0;
+		padding-right: 86px;
+		padding-bottom: 0;
+	}
+
+	.no-display__media-wrap {
+		position: relative;
+		right: auto;
+		bottom: auto;
+		align-self: center;
+		margin-top: 40px;
+	}
+
+	.analytics-banner {
+		flex-direction: column;
+	}
+
+	.analytics-banner__media {
+		width: 100%;
+		max-width: 448px;
 	}
 }
