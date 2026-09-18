@@ -9,11 +9,18 @@
  * оплаты, иначе менеджер получал бы и заказы, брошенные на странице оплаты,
  * не отличая их от оплаченных. При остальных способах — в момент оформления.
  *
- * Секреты — только в wp-config.php, не в БД и не в git:
+ * Токен бота и ID чата заказчик вписывает сам: WooCommerce → Настройки →
+ * Дополнительно → Telegram (telegram-admin.php, там же проверка отправки и
+ * поиск чата). Доступа к файлам сайта у заказчика нет, поэтому значения
+ * хранятся в опциях — как и ключи ЮKassa. В git их нет. Константы в
+ * wp-config.php, если заданы, важнее настроек:
  *   define( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN', '...' );
  *   define( 'WHOOPSTORE_TELEGRAM_CHAT_ID', '...' );
  * Необязательно — если api.telegram.org недоступен с хостинга:
  *   define( 'WHOOPSTORE_TELEGRAM_API_BASE', 'https://...' );
+ *
+ * Сообщения не с боевого окружения помечаются «[staging]», чтобы тестовый
+ * заказ в чате менеджеров не приняли за настоящий.
  *
  * Пока токена или чата нет, сообщение не отправляется, а его текст пишется в
  * журнал WooCommerce (WooCommerce → Статус → Журналы, источник
@@ -26,6 +33,80 @@
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+/**
+ * Токен бота и ID чата: константа из wp-config.php, иначе — настройка.
+ *
+ * @return array{token: string, chat_id: string}
+ */
+function whoopstore_telegram_credentials() {
+	$token = defined( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN' ) ? WHOOPSTORE_TELEGRAM_BOT_TOKEN : get_option( 'whoopstore_telegram_bot_token', '' );
+	$chat  = defined( 'WHOOPSTORE_TELEGRAM_CHAT_ID' ) ? WHOOPSTORE_TELEGRAM_CHAT_ID : get_option( 'whoopstore_telegram_chat_id', '' );
+
+	return [
+		'token'   => trim( (string) $token ),
+		'chat_id' => trim( (string) $chat ),
+	];
+}
+
+/**
+ * Вызов метода Bot API.
+ *
+ * Токен в тексте ошибки заменяется на «***»: ошибка уходит в журнал и в
+ * админку.
+ *
+ * @param string $method Метод Bot API, напр. sendMessage.
+ * @param array  $params Параметры.
+ * @return mixed|WP_Error Поле result ответа или ошибка (в data — HTTP-статус).
+ */
+function whoopstore_telegram_api( $method, $params = [] ) {
+	$token = whoopstore_telegram_credentials()['token'];
+
+	if ( '' === $token ) {
+		return new WP_Error( 'whoopstore_telegram_no_token', 'Не задан токен бота.' );
+	}
+
+	$base     = defined( 'WHOOPSTORE_TELEGRAM_API_BASE' ) ? rtrim( (string) WHOOPSTORE_TELEGRAM_API_BASE, '/' ) : 'https://api.telegram.org';
+	$response = wp_remote_post( $base . '/bot' . $token . '/' . $method, [
+		'timeout' => 5,
+		'body'    => $params,
+	] );
+
+	if ( is_wp_error( $response ) ) {
+		return new WP_Error( 'whoopstore_telegram_http', str_replace( $token, '***', $response->get_error_message() ), [ 'status' => 0 ] );
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+	if ( 200 !== $code || ! is_array( $body ) || empty( $body['ok'] ) ) {
+		$description = is_array( $body ) && isset( $body['description'] ) ? (string) $body['description'] : wp_remote_retrieve_body( $response );
+
+		return new WP_Error( 'whoopstore_telegram_api', str_replace( $token, '***', 'HTTP ' . $code . ' ' . $description ), [ 'status' => $code ] );
+	}
+
+	return $body['result'];
+}
+
+/**
+ * Отправляет текст в чат уведомлений.
+ *
+ * @param string $text Текст сообщения.
+ * @return true|WP_Error
+ */
+function whoopstore_telegram_send( $text ) {
+	if ( 'production' !== wp_get_environment_type() ) {
+		$text = "[staging]\n" . $text;
+	}
+
+	$result = whoopstore_telegram_api( 'sendMessage', [
+		'chat_id'                  => whoopstore_telegram_credentials()['chat_id'],
+		'text'                     => $text,
+		'disable_web_page_preview' => 'true',
+	] );
+
+	return is_wp_error( $result ) ? $result : true;
 }
 
 /**
@@ -159,10 +240,9 @@ function whoopstore_telegram_notify_order( $order ) {
 	$logger  = wc_get_logger();
 	$context = [ 'source' => 'whoopstore-telegram' ];
 	$text    = whoopstore_telegram_message( $order );
-	$token   = defined( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN' ) ? (string) WHOOPSTORE_TELEGRAM_BOT_TOKEN : '';
-	$chat_id = defined( 'WHOOPSTORE_TELEGRAM_CHAT_ID' ) ? (string) WHOOPSTORE_TELEGRAM_CHAT_ID : '';
+	$config  = whoopstore_telegram_credentials();
 
-	if ( '' === $token || '' === $chat_id ) {
+	if ( '' === $config['token'] || '' === $config['chat_id'] ) {
 		$logger->info( "Telegram не настроен, сообщение не отправлено:\n" . $text, $context );
 		$order->add_order_note( 'Уведомление в Telegram не отправлено: бот не настроен (текст — в журнале whoopstore-telegram).' );
 		$order->update_meta_data( '_whoopstore_telegram_notified', 'skipped' );
@@ -170,22 +250,11 @@ function whoopstore_telegram_notify_order( $order ) {
 		return;
 	}
 
-	$base     = defined( 'WHOOPSTORE_TELEGRAM_API_BASE' ) ? rtrim( (string) WHOOPSTORE_TELEGRAM_API_BASE, '/' ) : 'https://api.telegram.org';
-	$response = wp_remote_post( $base . '/bot' . $token . '/sendMessage', [
-		'timeout' => 5,
-		'body'    => [
-			'chat_id'                  => $chat_id,
-			'text'                     => $text,
-			'disable_web_page_preview' => 'true',
-		],
-	] );
+	$sent = whoopstore_telegram_send( $text );
 
-	$code = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
-
-	if ( 200 !== $code ) {
-		// Токен не должен попасть в журнал вместе с текстом ошибки.
-		$error = is_wp_error( $response ) ? $response->get_error_message() : 'HTTP ' . $code . ' ' . wp_remote_retrieve_body( $response );
-		$logger->error( 'Не удалось отправить уведомление о заказе №' . $order->get_order_number() . ': ' . str_replace( $token, '***', $error ), $context );
+	if ( is_wp_error( $sent ) ) {
+		// Токен из текста ошибки уже убран (whoopstore_telegram_api).
+		$logger->error( 'Не удалось отправить уведомление о заказе №' . $order->get_order_number() . ': ' . $sent->get_error_message(), $context );
 		$order->add_order_note( 'Уведомление в Telegram не отправлено: ошибка отправки (подробности — в журнале whoopstore-telegram).' );
 		$order->update_meta_data( '_whoopstore_telegram_notified', 'failed' );
 		$order->save();

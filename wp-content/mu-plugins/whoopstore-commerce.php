@@ -20,3 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/whoopstore-commerce/checkout.php';
 require_once __DIR__ . '/whoopstore-commerce/shipping.php';
 require_once __DIR__ . '/whoopstore-commerce/telegram.php';
+
+// Настройка Telegram в админке (WooCommerce → Настройки → Дополнительно → Telegram).
+if ( is_admin() ) {
+	require_once __DIR__ . '/whoopstore-commerce/telegram-admin.php';
+}
