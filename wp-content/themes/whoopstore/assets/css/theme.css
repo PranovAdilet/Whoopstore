@@ -417,6 +417,7 @@ a {
 
 .site-header__cta .wp-block-button__link {
 	white-space: nowrap;
+	word-break: normal;
 }
 
 /* Кнопка-корзина в шапке (Figma 30:290/30:429/30:433): белый круг 40×40,
