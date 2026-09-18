@@ -5371,6 +5371,23 @@ p.contact-block__legal {
 		padding-inline: 0;
 		-webkit-mask-image: none;
 		mask-image: none;
+		/* Привязка к кадру (правка 2026-09-18, баг «лента на телефоне
+		   неестественная»): без неё свайп останавливал ленту где попало, и
+		   выбранный ремешок не вставал под плашку. Центр — потому что
+		   плашка стоит по центру ленты (как в макете, над 4-м кадром из 7).
+		   overscroll-behavior — чтобы свайп у края ленты не уходил в жест
+		   «назад» браузера и не тянул страницу. Доворот ряда по кругу —
+		   в assets/js/straps-carousel.js, он же по этой привязке ставит
+		   средний кадр на старте. */
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+	}
+
+	/* Один свайп — один ремешок: без snap-stop инерция проскакивала бы
+	   несколько кадров (шаг здесь всего 166px). */
+	.straps-carousel--personalize .straps-carousel__photo {
+		scroll-snap-align: center;
+		scroll-snap-stop: always;
 	}
 
 	.straps-carousel--personalize .straps-carousel__badge {

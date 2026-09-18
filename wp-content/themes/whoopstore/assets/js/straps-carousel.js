@@ -12,9 +12,17 @@
  * и размеры из макета сохраняются.
  *
  * Свайп, колесо и клавиатура остаются нативными (у ленты overflow-x:auto).
- * На узком экране прокрутка реальная, и на краю лента доворачивается со
- * сдвигом scrollLeft на тот же шаг — визуально незаметно, но листание не
- * упирается в край.
+ * На узком экране прокрутка реальная, и лента доворачивается так, чтобы
+ * выбранный кадр снова стоял в середине ряда — с запасом кадров в обе
+ * стороны; экран при этом не сдвигается, поэтому листание не упирается в
+ * край.
+ *
+ * Доворот — только когда прокрутка УСПОКОИЛАСЬ (правка 2026-09-18, баг на
+ * mobile). Раньше кадр переставлялся и scrollLeft правился прямо в событии
+ * scroll, то есть посреди инерции свайпа: браузеры на это обрывают инерцию,
+ * и лента дёргалась и вставала. На mobile к тому же включена привязка к
+ * кадру (scroll-snap в theme.css): свайп доводит ремешок ровно в центр, под
+ * плашку, а не останавливает ленту где попало.
  *
  * На широком экране прокручивать нечего, поэтому события scroll там не
  * возникают вовсе — из-за этого лента не листалась жестом, а плашка не
@@ -55,13 +63,22 @@
 			return media.scrollWidth - media.clientWidth > 1;
 		}
 
+		// Координаты — по реальному положению на экране, а не offsetLeft: на
+		// mobile лента position:static и не является offsetParent кадров, и
+		// смешивать её scrollLeft с их offsetLeft там нельзя.
+		function centerOf( element ) {
+			var rect = element.getBoundingClientRect();
+
+			return rect.left + rect.width / 2;
+		}
+
 		function selectedPhoto() {
-			var center = media.scrollLeft + media.clientWidth / 2;
+			var center = centerOf( media );
 			var best = null;
 			var bestDistance = Infinity;
 
 			Array.prototype.forEach.call( photos, function ( photo ) {
-				var distance = Math.abs( photo.offsetLeft + photo.offsetWidth / 2 - center );
+				var distance = Math.abs( centerOf( photo ) - center );
 
 				if ( distance < bestDistance ) {
 					bestDistance = distance;
@@ -90,9 +107,8 @@
 
 		/**
 		 * Проворот на один кадр: вперёд — первый уходит в конец, назад —
-		 * последний встаёт в начало. Когда лента прокручивается, сдвигаем
-		 * scrollLeft на тот же шаг: кадры остаются на своих местах на экране,
-		 * просто появляется запас в нужную сторону.
+		 * последний встаёт в начало. Только для ленты без прокрутки —
+		 * прокручиваемую доворачивает recenter().
 		 */
 		function rotate( direction ) {
 			var moved = direction > 0 ? media.firstElementChild : media.lastElementChild;
@@ -101,17 +117,58 @@
 				return;
 			}
 
-			var shift = step();
-
 			if ( direction > 0 ) {
 				media.appendChild( moved );
 			} else {
 				media.insertBefore( moved, media.firstElementChild );
 			}
+		}
 
-			if ( scrollable() ) {
-				media.scrollLeft += direction > 0 ? -shift : shift;
+		/**
+		 * Доворот прокручиваемой ленты: выбранный кадр переезжает в середину
+		 * ряда, а scrollLeft компенсирует перестановку, так что на экране
+		 * ничего не сдвигается. Поправка считается по фактическому положению
+		 * кадра до и после, а не шагом: браузер с привязкой к кадру может
+		 * сам переставить прокрутку после изменения DOM, и сдвиг на
+		 * фиксированный шаг тогда ушёл бы дважды.
+		 */
+		function recenter() {
+			var selected = selectedPhoto();
+			var middle = Math.floor( photos.length / 2 );
+			var index = Array.prototype.indexOf.call( photos, selected );
+
+			if ( ! scrollable() || ! selected || index === middle ) {
+				return;
 			}
+
+			var before = centerOf( selected );
+
+			for ( ; index > middle; index-- ) {
+				media.appendChild( media.firstElementChild );
+			}
+
+			for ( ; index < middle; index++ ) {
+				media.insertBefore( media.lastElementChild, media.firstElementChild );
+			}
+
+			media.scrollLeft += centerOf( selected ) - before;
+		}
+
+		/**
+		 * С привязкой к кадру (mobile) лента на старте должна стоять на
+		 * средний кадр ряда — как в макете, где под плашкой четвёртый из
+		 * семи. Без этого браузер показывает начало ряда, и первый кадр
+		 * прижат к краю, а не к плашке. Брейкпоинт здесь не дублируем:
+		 * признак — сама привязка, заданная в CSS.
+		 */
+		function alignToCenter() {
+			if ( ! scrollable() || 'none' === ( window.getComputedStyle( media ).scrollSnapType || 'none' ) ) {
+				return;
+			}
+
+			var middle = photos[ Math.floor( photos.length / 2 ) ];
+
+			media.scrollLeft += centerOf( middle ) - centerOf( media );
 		}
 
 		// Длительность проворота: лента переезжает, а не прыгает. Сдвигаем сами
@@ -173,31 +230,16 @@
 				return;
 			}
 
-			// У края доворачиваем ленту, чтобы было куда ехать дальше.
+			// У края доворачиваем ленту, чтобы было куда ехать дальше. Обычно
+			// это уже сделал доворот после прошлой прокрутки; здесь — на случай
+			// частых нажатий, когда лента ещё не успокоилась.
 			var maxScroll = media.scrollWidth - media.clientWidth;
 
-			if ( direction > 0 && media.scrollLeft >= maxScroll - 1 ) {
-				rotate( 1 );
-			} else if ( direction < 0 && media.scrollLeft <= 1 ) {
-				rotate( -1 );
+			if ( ( direction > 0 && media.scrollLeft >= maxScroll - 1 ) || ( direction < 0 && media.scrollLeft <= 1 ) ) {
+				recenter();
 			}
 
 			media.scrollBy( { left: direction * step(), behavior: 'smooth' } );
-		}
-
-		// Тот же доворот, когда до края докрутили свайпом, а не стрелкой.
-		function loopAtEdges() {
-			if ( ! scrollable() ) {
-				return;
-			}
-
-			var maxScroll = media.scrollWidth - media.clientWidth;
-
-			if ( media.scrollLeft >= maxScroll - 1 ) {
-				rotate( 1 );
-			} else if ( media.scrollLeft <= 1 ) {
-				rotate( -1 );
-			}
 		}
 
 		/**
@@ -309,20 +351,61 @@
 		}
 
 		var scheduled = false;
+		var touching = false;
+		var settleTimer = null;
+		var hasScrollEnd = 'onscrollend' in window;
+
+		// Прокрутка успокоилась — можно доворачивать. Пока палец на экране,
+		// не трогаем: перестановка под пальцем читается как рывок.
+		function settle() {
+			if ( touching ) {
+				return;
+			}
+
+			recenter();
+			syncBadge();
+		}
 
 		media.addEventListener( 'scroll', function () {
+			// Где нет события scrollend (Safari), конец прокрутки — пауза в
+			// событиях scroll: инерция шлёт их каждый кадр.
+			if ( ! hasScrollEnd ) {
+				window.clearTimeout( settleTimer );
+				settleTimer = window.setTimeout( settle, 150 );
+			}
+
 			if ( scheduled ) {
 				return;
 			}
 
 			scheduled = true;
 
+			// Плашка следует за лентой и во время прокрутки.
 			window.requestAnimationFrame( function () {
 				scheduled = false;
-				loopAtEdges();
 				syncBadge();
 			} );
 		}, { passive: true } );
+
+		if ( hasScrollEnd ) {
+			media.addEventListener( 'scrollend', settle );
+		}
+
+		media.addEventListener( 'touchstart', function () {
+			touching = true;
+		}, { passive: true } );
+
+		function endTouch() {
+			touching = false;
+
+			if ( ! hasScrollEnd ) {
+				window.clearTimeout( settleTimer );
+				settleTimer = window.setTimeout( settle, 150 );
+			}
+		}
+
+		media.addEventListener( 'touchend', endTouch, { passive: true } );
+		media.addEventListener( 'touchcancel', endTouch, { passive: true } );
 
 		/**
 		 * Пальцем лента листается только там, где нет нативной прокрутки:
@@ -339,6 +422,7 @@
 		}
 
 		window.addEventListener( 'resize', sync );
+		alignToCenter();
 		sync();
 	}
 
