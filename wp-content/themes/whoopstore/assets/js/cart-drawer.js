@@ -10,6 +10,11 @@
  * из корзины Store API, форма уходит в POST /wc/store/v1/checkout, заказ
  * создаёт WooCommerce. Поля вне штатной схемы (Telegram, согласие) и
  * серверные проверки — mu-plugin whoopstore-commerce.
+ *
+ * СДЭК (плагин CDEKDelivery): плитки «Доставка курьером» и «ПВЗ CDEK», город
+ * и индекс уходят в Store API до оформления (по ним считаются тарифы), пункт
+ * выдачи выбирается в виджете СДЭК поверх формы — раздел «СДЭК» ниже и
+ * mu-plugins/whoopstore-commerce/cdek.php.
  */
 ( function () {
 	var cart = window.whoopstoreCart;
@@ -51,6 +56,18 @@
 	var currentState = null;
 	var pendingRateId = '';
 	var rateRequestToken = 0;
+
+	// СДЭК: плитка, выбранная до расчёта тарифа (door | office), выбранный
+	// пункт выдачи { code, address }, последний отправленный в Store API адрес,
+	// виджет карты.
+	var cdekPendingKind = '';
+	var cdekOffice = null;
+	var syncedAddress = { city: '', postcode: '' };
+	var addressTimer = 0;
+	var submitting = false;
+	var widgetPromise = null;
+	var mapWidget = null;
+	var mapCity = '';
 
 	/* ---------- Форматирование ---------- */
 
@@ -289,8 +306,258 @@
 		return !! rate && 'local_pickup' === rate.method_id;
 	}
 
-	function needsAddress( state ) {
-		return !! ( state && state.needs_shipping ) && ! isPickup( effectiveRate( state ) );
+	/* ---------- СДЭК ---------- */
+
+	// Плитки «Доставка курьером» и «ПВЗ CDEK» (Figma 30:619). Тарифы считает
+	// плагин CDEKDelivery по городу и индексу покупателя. Пока их нет (город
+	// не введён), плитки строятся по данным корзины extensions.whoopstore.cdek
+	// (mu-plugins/whoopstore-commerce/cdek.php), а выбор такой плитки
+	// запоминается в cdekPendingKind и применяется, когда тариф посчитан.
+
+	function cdekData( state ) {
+		return ( state && state.extensions && state.extensions.whoopstore && state.extensions.whoopstore.cdek ) || null;
+	}
+
+	// { kind: 'door' | 'office', pointType: 'PVZ' | 'POSTAMAT' | null } или null.
+	function cdekRateInfo( state, rate ) {
+		var cdek = cdekData( state );
+
+		return cdek && cdek.rates && rate ? cdek.rates[ rate.rate_id ] || null : null;
+	}
+
+	function cdekRateOfKind( state, kind ) {
+		return findRate( state, function ( rate ) {
+			var info = cdekRateInfo( state, rate );
+
+			return !! info && info.kind === kind;
+		} );
+	}
+
+	/**
+	 * Какие поля адреса нужны выбранному способу: full — весь адрес (курьер,
+	 * «Экспресс»), city — город и индекс (ПВЗ: по ним ищутся пункты), none —
+	 * самовывоз и заказ из одних виртуальных товаров.
+	 */
+	function addressMode( state ) {
+		if ( ! state || ! state.needs_shipping ) {
+			return 'none';
+		}
+
+		if ( cdekPendingKind ) {
+			return 'office' === cdekPendingKind ? 'city' : 'full';
+		}
+
+		var rate = effectiveRate( state );
+
+		if ( isPickup( rate ) ) {
+			return 'none';
+		}
+
+		var info = cdekRateInfo( state, rate );
+
+		return info && 'office' === info.kind ? 'city' : 'full';
+	}
+
+	// Пункты выдачи города из данных корзины плагина — только того типа,
+	// куда везёт тариф (ПВЗ или постамат).
+	function cdekPoints( state, rate ) {
+		var info = cdekRateInfo( state, rate );
+		var ext = state && state.extensions && state.extensions.official_cdek;
+		var points;
+
+		try {
+			points = JSON.parse( ( ext && ext.points ) || '[]' );
+		} catch ( e ) {
+			points = [];
+		}
+
+		return ( Array.isArray( points ) ? points : [] ).filter( function ( point ) {
+			return ! info || ! info.pointType || point.type === info.pointType;
+		} );
+	}
+
+	/**
+	 * Город и индекс — в Store API до оформления: по ним СДЭК считает тарифы
+	 * и отдаёт пункты выдачи. Индекс уходит, только когда в нём 6 цифр.
+	 * Возвращает промис — оформление заказа ждёт адрес.
+	 */
+	function syncAddress( force ) {
+		window.clearTimeout( addressTimer );
+
+		if ( 'none' === addressMode( currentState ) ) {
+			return Promise.resolve();
+		}
+
+		var city = fieldValue( 'city' );
+		var postcode = fieldValue( 'postcode' ).replace( /\s/g, '' );
+
+		if ( postcode && ! /^\d{6}$/.test( postcode ) ) {
+			return Promise.resolve();
+		}
+
+		if ( ! force && city === syncedAddress.city && postcode === syncedAddress.postcode ) {
+			return Promise.resolve();
+		}
+
+		// Пункт выдачи привязан к городу.
+		if ( city !== syncedAddress.city ) {
+			cdekOffice = null;
+		}
+
+		syncedAddress = { city: city, postcode: postcode };
+
+		return cart.updateCustomer( { city: city, postcode: postcode, country: 'RU' } )
+			.then( function () {
+				applyPendingCdek();
+			} )
+			.catch( function () {} );
+	}
+
+	// Тариф для выбранной заранее плитки СДЭК посчитан — выбираем его.
+	function applyPendingCdek() {
+		var state = currentState;
+		var cdek = cdekData( state );
+
+		if ( ! cdekPendingKind || ! state ) {
+			return;
+		}
+
+		var rate = cdekRateOfKind( state, cdekPendingKind );
+
+		if ( ! rate ) {
+			if ( cdek && cdek.unavailable ) {
+				showError( cdek.unavailable );
+			}
+
+			return;
+		}
+
+		var kind = cdekPendingKind;
+
+		cdekPendingKind = '';
+		selectRate( shippingPackage( state ).package_id, rate.rate_id );
+
+		if ( 'office' === kind && ! cdekOffice && ! submitting ) {
+			openMap();
+		}
+	}
+
+	// Виджет ПВЗ плагина (build/cdek-widget.umd.js, ~600 КБ) — только при
+	// первом открытии карты, а не на каждой странице.
+	function loadWidget( src ) {
+		if ( window.CDEKWidget ) {
+			return Promise.resolve( window.CDEKWidget );
+		}
+
+		if ( ! widgetPromise ) {
+			widgetPromise = new Promise( function ( resolve, reject ) {
+				var script = document.createElement( 'script' );
+
+				script.src = src;
+				script.async = true;
+				script.onload = function () {
+					if ( window.CDEKWidget ) {
+						resolve( window.CDEKWidget );
+					} else {
+						widgetPromise = null;
+						reject( new Error( 'CDEKWidget' ) );
+					}
+				};
+				script.onerror = function () {
+					widgetPromise = null;
+					reject( new Error( 'CDEKWidget' ) );
+				};
+				document.head.appendChild( script );
+			} );
+		}
+
+		return widgetPromise;
+	}
+
+	/**
+	 * Карта пунктов выдачи — виджет СДЭК во всплывающем окне поверх формы, с
+	 * теми же параметрами, что у плагина в штатном оформлении
+	 * (build/cdek-checkout-map.js): пункты — из корзины, доставка до двери
+	 * скрыта. Без своего ключа Яндекс.Карт виджет берёт ключ по умолчанию.
+	 */
+	function openMap() {
+		var state = currentState;
+		var cdek = cdekData( state );
+		var rate = cdekRateOfKind( state, 'office' );
+
+		if ( ! cdek || ! rate ) {
+			return;
+		}
+
+		var points = cdekPoints( state, rate );
+		var city = fieldValue( 'city' ) || ( state.shipping_address && state.shipping_address.city ) || '';
+
+		if ( ! points.length ) {
+			showError( cdek.noPoints );
+			return;
+		}
+
+		hideError();
+
+		loadWidget( cdek.widget.script )
+			.then( function ( Widget ) {
+				if ( ! mapWidget ) {
+					var params = {
+						popup: true,
+						lang: cdek.widget.lang,
+						defaultLocation: city,
+						officesRaw: points,
+						hideDeliveryOptions: { door: true },
+						onChoose: function ( type, tariff, office ) {
+							chooseOffice( office );
+						},
+					};
+
+					if ( cdek.widget.apiKey ) {
+						params.apiKey = cdek.widget.apiKey;
+					}
+
+					mapWidget = new Widget( params );
+				} else {
+					if ( city !== mapCity ) {
+						mapWidget.clearSelection();
+					}
+
+					mapWidget.updateOfficesRaw( points );
+					mapWidget.updateLocation( city );
+				}
+
+				mapCity = city;
+				mapWidget.open();
+			} )
+			.catch( function () {
+				showError( 'Не удалось открыть карту пунктов выдачи. Попробуйте ещё раз.' );
+			} );
+	}
+
+	function chooseOffice( office ) {
+		var code = office && office.code;
+
+		if ( ! code ) {
+			return;
+		}
+
+		// Адрес — из того же списка пунктов, что на карте.
+		var point = cdekPoints( currentState, cdekRateOfKind( currentState, 'office' ) ).filter( function ( item ) {
+			return item.code === code;
+		} )[ 0 ];
+
+		cdekOffice = {
+			code: code,
+			address: ( point && point.location && point.location.address ) || office.name || code,
+		};
+
+		hideError();
+		renderCheckout( currentState );
+
+		if ( mapWidget && mapWidget.close ) {
+			mapWidget.close();
+		}
 	}
 
 	/**
@@ -342,57 +609,144 @@
 			} );
 	}
 
+	/**
+	 * Плитка способа доставки. onReselect — нажатие на уже выбранную плитку
+	 * («ПВЗ CDEK» открывает карту заново).
+	 */
+	function shippingTile( spec ) {
+		var option = document.createElement( 'label' );
+		option.className = 'checkout-shipping__option';
+
+		var input = document.createElement( 'input' );
+		input.type = 'radio';
+		input.name = 'shipping_rate';
+		input.value = spec.value;
+		input.checked = spec.checked;
+		input.addEventListener( 'change', spec.onSelect );
+
+		if ( spec.onReselect ) {
+			option.addEventListener( 'click', function ( event ) {
+				// Клик по подписи браузер повторяет на radio — второй раз не считаем.
+				if ( event.target !== input && input.checked ) {
+					spec.onReselect();
+				}
+			} );
+		}
+
+		var tile = document.createElement( 'span' );
+		tile.className = 'checkout-shipping__tile';
+
+		var title = document.createElement( 'span' );
+		title.className = 'checkout-shipping__title';
+		title.textContent = spec.title;
+
+		var text = document.createElement( 'span' );
+		text.className = 'checkout-shipping__text';
+		text.textContent = spec.text;
+
+		tile.appendChild( title );
+		tile.appendChild( text );
+		option.appendChild( input );
+		option.appendChild( tile );
+
+		return option;
+	}
+
+	function rateTile( state, pack, rate ) {
+		var info = cdekRateInfo( state, rate );
+		var isOffice = !! info && 'office' === info.kind;
+		var text = rateCaption( rate, state.totals );
+
+		// Выбранный пункт выдачи — вместо «Выберите пункт выдачи на карте».
+		if ( isOffice && cdekOffice ) {
+			text = formatTilePrice( rate.price, state.totals ) + ' · ' + cdekOffice.address;
+		}
+
+		return shippingTile( {
+			value: rate.rate_id,
+			title: decodeHtml( rate.name ),
+			text: text,
+			checked: ! cdekPendingKind && ( pendingRateId ? rate.rate_id === pendingRateId : !! rate.selected ),
+			onSelect: function () {
+				cdekPendingKind = '';
+				selectRate( pack.package_id, rate.rate_id );
+
+				if ( isOffice && ! cdekOffice ) {
+					openMap();
+				}
+			},
+			onReselect: isOffice ? openMap : null,
+		} );
+	}
+
+	// Плитка СДЭК, пока тарифа нет: город не введён.
+	function pendingCdekTile( tile ) {
+		return shippingTile( {
+			value: 'cdek:' + tile.kind,
+			title: decodeHtml( tile.title ),
+			text: decodeHtml( tile.description ),
+			checked: cdekPendingKind === tile.kind,
+			onSelect: function () {
+				hideError();
+				cdekPendingKind = tile.kind;
+				renderCheckout( currentState );
+
+				var city = checkoutForm.elements.city;
+
+				if ( city && ! city.value.trim() ) {
+					city.focus();
+				}
+
+				syncAddress( true );
+			},
+		} );
+	}
+
 	function renderShipping( state ) {
 		var visible = !! ( state && state.needs_shipping );
 		var pack = shippingPackage( state );
+		var cdek = cdekData( state );
+		var cityKnown = !! ( state && state.shipping_address && state.shipping_address.city );
 
 		shippingLabel.hidden = ! visible;
 		shippingBox.hidden = ! visible;
 		shippingBox.textContent = '';
 
-		if ( visible && pack ) {
-			pack.shipping_rates.forEach( function ( rate ) {
-				var option = document.createElement( 'label' );
-				option.className = 'checkout-shipping__option';
+		if ( visible ) {
+			// Сначала СДЭК — порядок макета: курьером, ПВЗ, «Экспресс», «Самовывоз».
+			// Если город введён, а тарифа СДЭК нет, плитку не показываем.
+			if ( cdek && cdek.tiles ) {
+				cdek.tiles.forEach( function ( tile ) {
+					var rate = cdekRateOfKind( state, tile.kind );
 
-				var input = document.createElement( 'input' );
-				input.type = 'radio';
-				input.name = 'shipping_rate';
-				input.value = rate.rate_id;
-				input.checked = pendingRateId ? rate.rate_id === pendingRateId : !! rate.selected;
-				input.addEventListener( 'change', function () {
-					selectRate( pack.package_id, rate.rate_id );
+					if ( rate ) {
+						shippingBox.appendChild( rateTile( state, pack, rate ) );
+					} else if ( ! cityKnown ) {
+						shippingBox.appendChild( pendingCdekTile( tile ) );
+					}
 				} );
+			}
 
-				var tile = document.createElement( 'span' );
-				tile.className = 'checkout-shipping__tile';
-
-				var title = document.createElement( 'span' );
-				title.className = 'checkout-shipping__title';
-				title.textContent = decodeHtml( rate.name );
-
-				var text = document.createElement( 'span' );
-				text.className = 'checkout-shipping__text';
-				text.textContent = rateCaption( rate, state.totals );
-
-				tile.appendChild( title );
-				tile.appendChild( text );
-				option.appendChild( input );
-				option.appendChild( tile );
-				shippingBox.appendChild( option );
-			} );
+			if ( pack ) {
+				pack.shipping_rates.forEach( function ( rate ) {
+					if ( ! cdekRateInfo( state, rate ) ) {
+						shippingBox.appendChild( rateTile( state, pack, rate ) );
+					}
+				} );
+			}
 		}
 
-		// Адрес — только для доставки по адресу. Скрытое обязательное поле
-		// заблокировало бы отправку формы, поэтому required снимается вместе
-		// с видимостью.
-		var withAddress = needsAddress( state );
+		// Адрес — только для доставки по адресу, для ПВЗ — город и индекс.
+		// Скрытое обязательное поле заблокировало бы отправку формы, поэтому
+		// required снимается вместе с видимостью.
+		var mode = addressMode( state );
 
 		Array.prototype.forEach.call( addressFields, function ( field ) {
 			var input = field.querySelector( 'input' );
+			var shown = 'full' === mode || ( 'city' === mode && ( 'city' === input.name || 'postcode' === input.name ) );
 
-			field.hidden = ! withAddress;
-			input.required = withAddress && input.hasAttribute( 'data-required' );
+			field.hidden = ! shown;
+			input.required = shown && input.hasAttribute( 'data-required' ) && ( 'full' === mode || 'city' === input.name );
 		} );
 	}
 
@@ -448,16 +802,24 @@
 			? ( parseInt( rate.price, 10 ) || 0 )
 			: ( parseInt( state.totals.total_shipping, 10 ) || 0 );
 
+		// Плитка СДЭК выбрана, а тариф ещё не посчитан (нет города): доставки
+		// в итогах нет — иначе там стояла бы цена другого способа.
+		var cdekUnpriced = !! cdekPendingKind;
+
 		totalsItems.textContent = formatPrice( itemsTotal, state.totals );
-		shippingRow.hidden = ! state.needs_shipping;
+		shippingRow.hidden = ! state.needs_shipping || cdekUnpriced;
 		totalsShipping.textContent = formatPrice( shippingTotal, state.totals );
 
 		// «Срок доставки» — только если он задан у тарифа. Выдумывать срок,
 		// которого нет в настройках доставки, нельзя.
-		deliveryRow.hidden = ! ( rate && rate.delivery_time );
+		deliveryRow.hidden = cdekUnpriced || ! ( rate && rate.delivery_time );
 		totalsDelivery.textContent = rate && rate.delivery_time ? decodeHtml( rate.delivery_time ) : '';
 
-		totalsGrand.textContent = formatPrice( pendingRateId ? itemsTotal + shippingTotal : state.totals.total_price, state.totals );
+		if ( cdekUnpriced ) {
+			totalsGrand.textContent = formatPrice( itemsTotal, state.totals );
+		} else {
+			totalsGrand.textContent = formatPrice( pendingRateId ? itemsTotal + shippingTotal : state.totals.total_price, state.totals );
+		}
 	}
 
 	/* ---------- Ошибки ---------- */
@@ -497,22 +859,23 @@
 	}
 
 	function buildOrder( state ) {
-		var withAddress = needsAddress( state );
+		var mode = addressMode( state );
+		var full = 'full' === mode;
+		var withCity = 'none' !== mode;
 		var address = {
 			first_name: fieldValue( 'full_name' ),
 			last_name: '',
 			company: '',
-			address_1: withAddress ? [ fieldValue( 'street' ), fieldValue( 'house' ) ].filter( Boolean ).join( ', ' ) : '',
-			address_2: withAddress ? fieldValue( 'apartment' ) : '',
-			city: withAddress ? fieldValue( 'city' ) : '',
+			address_1: full ? [ fieldValue( 'street' ), fieldValue( 'house' ) ].filter( Boolean ).join( ', ' ) : '',
+			address_2: full ? fieldValue( 'apartment' ) : '',
+			city: withCity ? fieldValue( 'city' ) : '',
 			state: '',
-			postcode: withAddress ? fieldValue( 'postcode' ) : '',
+			postcode: withCity ? fieldValue( 'postcode' ) : '',
 			country: 'RU',
 			phone: '+7' + phoneDigits(),
 		};
 		var methods = ( state && state.payment_methods ) || [];
-
-		return {
+		var order = {
 			billing_address: Object.assign( {}, address, { email: fieldValue( 'email' ) } ),
 			shipping_address: address,
 			customer_note: fieldValue( 'customer_note' ),
@@ -523,6 +886,14 @@
 				'whoopstore/privacy-consent': !! checkoutForm.elements.privacy_consent.checked,
 			},
 		};
+
+		// СДЭК до пункта выдачи: код ПВЗ — в поле плагина, он сохранит его в
+		// заказе (без кода сервер вернёт ошибку).
+		if ( 'city' === mode ) {
+			order.extensions = { official_cdek: { office_code: cdekOffice ? cdekOffice.code : '' } };
+		}
+
+		return order;
 	}
 
 	checkoutForm.addEventListener( 'submit', function ( event ) {
@@ -539,9 +910,35 @@
 		}
 
 		submitButton.disabled = true;
+		submitting = true;
 
-		cart.checkout( buildOrder( cart.getState() ) )
+		// Сначала адрес: по нему СДЭК пересчитывает тарифы, и заказ должен
+		// уйти с актуальными.
+		syncAddress( false )
+			.then( function () {
+				var cdek = cdekData( currentState );
+
+				// Плитка СДЭК выбрана, но тарифа для города нет.
+				if ( cdekPendingKind ) {
+					throw new Error( ( cdek && cdek.unavailable ) || 'Укажите город для доставки.' );
+				}
+
+				// До ПВЗ без выбранного пункта — сначала карта.
+				var rate = effectiveRate( currentState );
+				var info = cdekRateInfo( currentState, rate );
+
+				if ( info && 'office' === info.kind && ! cdekOffice ) {
+					openMap();
+					return 'map';
+				}
+
+				return cart.checkout( buildOrder( cart.getState() ) );
+			} )
 			.then( function ( order ) {
+				if ( 'map' === order ) {
+					return null;
+				}
+
 				var redirect = order.payment_result && order.payment_result.redirect_url;
 
 				// Оплата с переходом на страницу платёжной системы (ЮKassa) —
@@ -556,6 +953,9 @@
 
 				checkoutForm.reset();
 				pendingRateId = '';
+				cdekPendingKind = '';
+				cdekOffice = null;
+				syncedAddress = { city: '', postcode: '' };
 				close();
 				showOrderModal( number );
 
@@ -568,7 +968,28 @@
 			} )
 			.then( function () {
 				submitButton.disabled = false;
+				submitting = false;
 			} );
+	} );
+
+	// Город и индекс уходят в Store API, когда покупатель перестал печатать
+	// или ушёл из поля.
+	[ 'city', 'postcode' ].forEach( function ( name ) {
+		var field = checkoutForm.elements[ name ];
+
+		if ( ! field ) {
+			return;
+		}
+
+		field.addEventListener( 'input', function () {
+			window.clearTimeout( addressTimer );
+			addressTimer = window.setTimeout( function () {
+				syncAddress( false );
+			}, 800 );
+		} );
+		field.addEventListener( 'change', function () {
+			syncAddress( false );
+		} );
 	} );
 
 	/* ---------- События ---------- */

@@ -496,6 +496,22 @@
 		} );
 	}
 
+	/**
+	 * Город и индекс покупателя — до оформления заказа: по ним СДЭК считает
+	 * тарифы и отдаёт список ПВЗ (данные корзины). Идёт через ту же очередь,
+	 * поэтому оформление заказа уйдёт уже после адреса.
+	 */
+	function updateCustomer( address ) {
+		flush();
+
+		return enqueue( function () {
+			return request( 'cart/update-customer', {
+				method: 'POST',
+				body: { shipping_address: address },
+			} ).then( applyIfCurrent( mutationToken ) );
+		} );
+	}
+
 	function checkout( data ) {
 		flush();
 
@@ -526,6 +542,7 @@
 		removeItem: removeItem,
 		clear: clear,
 		selectShippingRate: selectShippingRate,
+		updateCustomer: updateCustomer,
 		checkout: checkout,
 	};
 
