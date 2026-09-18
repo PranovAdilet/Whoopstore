@@ -961,6 +961,20 @@ a {
 	width: 100%;
 }
 
+/* Hero переехал в синхронизированный паттерн (2026-09-18). Заодно починена
+   невалидная блочная разметка: раньше .hero-panel__content получал мусорный
+   класс `wp-block-group-` — в атрибутах стоял layout типа `flow`, которого у
+   ядра нет, и класс раскладки собирался пустым. Теперь это настоящий
+   flow-контейнер, а значит на его вторую колонку ложится block-gap ядра
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}) и фото трекера
+   съезжало бы на 24px вниз относительно карточки текста. Раньше отступа не
+   было вовсе — возвращаем это.
+   На mobile колонка скрыта (display:none), так что правило только про desktop. */
+.hero-panel__content > .hero-panel__content-right {
+	margin-block-start: 0;
+}
+
+
 .hero-panel__title,
 .hero-panel__text,
 .hero-panel__actions {
