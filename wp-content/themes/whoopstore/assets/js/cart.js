@@ -5,8 +5,10 @@
  *
  * Своей модели корзины здесь нет: единственный источник истины —
  * /wp-json/wc/store/v1/cart (тот же REST-интерфейс, которым пользуются
- * блоки WooCommerce). Скрипт только читает его ответ и перерисовывает
- * интерфейс; наличие, цены и правила остаются на стороне WooCommerce.
+ * блоки WooCommerce). Наличие, цены и правила остаются на стороне
+ * WooCommerce. Чтобы «+/−» и «Очистить» откликались сразу, скрипт до ответа
+ * показывает местную копию корзины с новым количеством, а ответ сервера её
+ * заменяет (см. «Изменение корзины: мгновенный отклик» ниже).
  *
  * Без JS страница остаётся рабочей: форма "Добавить в корзину" отправляется
  * обычным POST'ом WooCommerce, корзина открывается по /cart/.
@@ -69,49 +71,230 @@
 		} );
 	}
 
-	function refresh() {
-		return request( 'cart' ).then( setState );
+	/* ---------- Изменение корзины: мгновенный отклик ---------- */
+
+	// Правка 2026-09-18 (QA корзины). Раньше интерфейс менялся только после
+	// ответа Store API (~0,5 с на стенде), а быстрые нажатия терялись: «+»
+	// отправлял «количество из последнего ответа + 1», и три быстрых нажатия на
+	// 1 давали три запроса «сделай 2». Ответы к тому же могли прийти не по
+	// порядку и перезаписать более новое состояние.
+	//
+	// Теперь:
+	//  - количество, суммы и счётчик меняются сразу — публикуется местная копия
+	//    корзины (withQuantity), ответ сервера её уточняет;
+	//  - по каждой позиции уходит один запрос через DEBOUNCE после последнего
+	//    нажатия, с итоговым количеством (0 — удаление);
+	//  - запросы, меняющие корзину, идут строго по одному (enqueue): иначе
+	//    параллельные записи в сессию WooCommerce могли затереть друг друга;
+	//  - ответ применяется, только если после его отправки ничего не нажимали
+	//    (mutationToken) и нет неотправленных изменений — иначе за ним придёт
+	//    следующий, он и принесёт итог.
+	// Выбор доставки, оформление и перечитывание корзины сначала отправляют
+	// все отложенные изменения (flush), чтобы заказ не ушёл со старым количеством.
+	var DEBOUNCE = 300;
+	var queue = Promise.resolve();
+	var mutationToken = 0;
+	var pendingQty = {};
+	var timers = {};
+
+	function enqueue( task ) {
+		var run = queue.then( task, task );
+
+		queue = run.catch( function () {} );
+
+		return run;
 	}
 
-	function addItem( id, quantity ) {
-		return request( 'cart/add-item', {
-			method: 'POST',
-			body: { id: id, quantity: quantity || 1 },
-		} ).then( function ( cart ) {
-			setState( cart );
-			showToast();
+	function hasPending() {
+		return Object.keys( pendingQty ).length > 0;
+	}
+
+	// Ответ сервера применяется, только если он всё ещё последний.
+	function applyIfCurrent( token ) {
+		return function ( cart ) {
+			if ( token === mutationToken && ! hasPending() ) {
+				setState( cart );
+			}
+
 			return cart;
-		} );
+		};
 	}
 
 	// Ошибка Store API при изменении корзины (товар закончился, превышен
 	// лимит количества, истекла сессия) отдельным сообщением не показывается —
 	// такого состояния в макете нет. Корзина просто перечитывается, и степпер,
 	// счётчик и drawer возвращаются к фактическому состоянию WooCommerce.
-	// Без этого промис падал необработанным в консоль, а интерфейс оставался
-	// в рассинхроне с корзиной.
-	function recover() {
-		return refresh().catch( function () {} );
+	// Вызывается изнутри задачи очереди, поэтому запрос идёт напрямую, мимо
+	// очереди (через очередь задача ждала бы саму себя).
+	function recover( token ) {
+		return request( 'cart' ).then( applyIfCurrent( token ) ).catch( function () {} );
+	}
+
+	function refresh() {
+		flush();
+
+		return enqueue( function () {
+			return request( 'cart' ).then( applyIfCurrent( mutationToken ) );
+		} );
+	}
+
+	function clone( cart ) {
+		return JSON.parse( JSON.stringify( cart ) );
+	}
+
+	function money( value ) {
+		return parseInt( value, 10 ) || 0;
+	}
+
+	/**
+	 * Местная копия корзины с новым количеством позиции (0 — позиция убрана):
+	 * количество, сумма строки, счётчик и итог сдвигаются на разницу по цене
+	 * единицы. Доставку и прочее не трогаем — это уточнит ответ сервера.
+	 */
+	function withQuantity( cart, key, quantity ) {
+		var next = clone( cart );
+		var delta = 0;
+		var countDelta = 0;
+
+		next.items = ( next.items || [] ).filter( function ( item ) {
+			if ( item.key !== key ) {
+				return true;
+			}
+
+			var unit = money( item.prices && item.prices.price );
+
+			delta = ( quantity - item.quantity ) * unit;
+			countDelta = quantity - item.quantity;
+
+			if ( quantity < 1 ) {
+				return false;
+			}
+
+			item.quantity = quantity;
+
+			if ( item.totals ) {
+				item.totals.line_subtotal = String( unit * quantity );
+				item.totals.line_total = String( unit * quantity );
+			}
+
+			return true;
+		} );
+
+		next.items_count = Math.max( 0, ( next.items_count || 0 ) + countDelta );
+
+		if ( next.totals ) {
+			next.totals.total_items = String( money( next.totals.total_items ) + delta );
+			next.totals.total_price = String( money( next.totals.total_price ) + delta );
+		}
+
+		return next;
+	}
+
+	function send( key ) {
+		window.clearTimeout( timers[ key ] );
+		delete timers[ key ];
+
+		if ( ! ( key in pendingQty ) ) {
+			return queue;
+		}
+
+		var quantity = pendingQty[ key ];
+
+		delete pendingQty[ key ];
+
+		return enqueue( function () {
+			var token = mutationToken;
+			var call = quantity < 1 ?
+				request( 'cart/remove-item', { method: 'POST', body: { key: key } } ) :
+				request( 'cart/update-item', { method: 'POST', body: { key: key, quantity: quantity } } );
+
+			return call.then( applyIfCurrent( token ), function () {
+				return recover( token );
+			} );
+		} );
+	}
+
+	// Отправить все отложенные изменения сейчас, не дожидаясь паузы.
+	function flush() {
+		Object.keys( pendingQty ).forEach( send );
+	}
+
+	function setQuantity( key, quantity ) {
+		if ( ! state ) {
+			return Promise.resolve();
+		}
+
+		mutationToken++;
+		setState( withQuantity( state, key, quantity ) );
+		pendingQty[ key ] = quantity;
+		window.clearTimeout( timers[ key ] );
+		timers[ key ] = window.setTimeout( function () {
+			send( key );
+		}, DEBOUNCE );
+
+		return Promise.resolve();
 	}
 
 	function updateItem( key, quantity ) {
-		return request( 'cart/update-item', {
-			method: 'POST',
-			body: { key: key, quantity: quantity },
-		} ).then( setState ).catch( recover );
+		return setQuantity( key, quantity );
 	}
 
 	function removeItem( key ) {
-		return request( 'cart/remove-item', {
-			method: 'POST',
-			body: { key: key },
-		} ).then( setState ).catch( recover );
+		return setQuantity( key, 0 );
+	}
+
+	function addItem( id, quantity ) {
+		flush();
+		mutationToken++;
+
+		return enqueue( function () {
+			var token = mutationToken;
+
+			return request( 'cart/add-item', {
+				method: 'POST',
+				body: { id: id, quantity: quantity || 1 },
+			} ).then( function ( cart ) {
+				applyIfCurrent( token )( cart );
+				showToast();
+
+				return cart;
+			} );
+		} );
 	}
 
 	function clear() {
-		return request( 'cart/items', { method: 'DELETE' } ).then( function () {
-			return refresh();
-		} ).catch( recover );
+		Object.keys( timers ).forEach( function ( key ) {
+			window.clearTimeout( timers[ key ] );
+		} );
+		timers = {};
+		pendingQty = {};
+		mutationToken++;
+
+		if ( state ) {
+			var empty = clone( state );
+
+			empty.items = [];
+			empty.items_count = 0;
+
+			if ( empty.totals ) {
+				empty.totals.total_items = '0';
+				empty.totals.total_price = '0';
+			}
+
+			setState( empty );
+		}
+
+		return enqueue( function () {
+			var token = mutationToken;
+
+			return request( 'cart/items', { method: 'DELETE' } )
+				.then( function () {
+					return request( 'cart' );
+				} )
+				.then( applyIfCurrent( token ), function () {
+					return recover( token );
+				} );
+		} );
 	}
 
 	function findItem( id ) {
@@ -303,16 +486,24 @@
 	// изменения корзины, ошибки здесь не гасятся: форма должна показать
 	// покупателю, что пошло не так (нет адреса, тариф недоступен и т.п.).
 	function selectShippingRate( packageId, rateId ) {
-		return request( 'cart/select-shipping-rate', {
-			method: 'POST',
-			body: { package_id: packageId, rate_id: rateId },
-		} ).then( setState );
+		flush();
+
+		return enqueue( function () {
+			return request( 'cart/select-shipping-rate', {
+				method: 'POST',
+				body: { package_id: packageId, rate_id: rateId },
+			} ).then( applyIfCurrent( mutationToken ) );
+		} );
 	}
 
 	function checkout( data ) {
-		return request( 'checkout', {
-			method: 'POST',
-			body: data,
+		flush();
+
+		return enqueue( function () {
+			return request( 'checkout', {
+				method: 'POST',
+				body: data,
+			} );
 		} );
 	}
 
