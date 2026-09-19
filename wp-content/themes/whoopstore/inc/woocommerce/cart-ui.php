@@ -188,7 +188,18 @@ function whoopstore_cart_overlays() {
 				<label class="checkout-consent">
 					<input type="checkbox" class="checkout-consent__input" name="privacy_consent" required />
 					<span class="checkout-consent__box" aria-hidden="true"></span>
-					<span class="checkout-consent__text">Я согласен(-а) с политикой конфиденциальности</span>
+					<?php
+					// Ссылка на политику появляется сама, когда страница
+					// политики опубликована (Настройки → Конфиденциальность).
+					// Пока это черновик, ссылки нет: вести покупателя на 404
+					// хуже, чем оставить текст как в макете.
+					$privacy_url = get_privacy_policy_url();
+					$consent     = 'Я согласен(-а) с ';
+					$consent    .= $privacy_url
+						? '<a class="checkout-consent__link" href="' . esc_url( $privacy_url ) . '" target="_blank" rel="noopener">политикой конфиденциальности</a>'
+						: 'политикой конфиденциальности';
+					?>
+					<span class="checkout-consent__text"><?php echo wp_kses_post( $consent ); ?></span>
 				</label>
 
 				<div class="checkout-totals">
