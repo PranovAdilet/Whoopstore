@@ -1088,17 +1088,35 @@
 	// Номер заказа сервер кладёт в data-placed-order, только если ключ заказа
 	// из адреса совпал (inc/woocommerce/cart-ui.php). Корзину к этому моменту
 	// уже очистил плагин ЮKassa.
+	// Убирает служебные параметры из адреса, не перезагружая страницу.
+	function stripParams( names ) {
+		if ( ! window.history || ! window.history.replaceState || ! window.URL ) {
+			return;
+		}
+
+		var url = new URL( window.location.href );
+
+		names.forEach( function ( name ) {
+			url.searchParams.delete( name );
+		} );
+
+		window.history.replaceState( null, '', url.pathname + url.search + url.hash );
+	}
+
 	if ( modal.dataset.placedOrder ) {
 		showOrderModal( modal.dataset.placedOrder );
 
 		// Номер и ключ убираем из адреса: при обновлении страницы модалка не
 		// всплывает повторно, а ключ заказа не остаётся в ссылке.
-		if ( window.history && window.history.replaceState && window.URL ) {
-			var url = new URL( window.location.href );
+		stripParams( [ 'order-placed', 'key' ] );
+	}
 
-			url.searchParams.delete( 'order-placed' );
-			url.searchParams.delete( 'key' );
-			window.history.replaceState( null, '', url.pathname + url.search + url.hash );
-		}
+	/* ---------- Переход со служебных страниц /cart/ и /checkout/ ---------- */
+
+	// Их в макете нет, покупателя возвращает на Главную
+	// (inc/woocommerce/redirects.php) — открываем корзину.
+	if ( -1 !== window.location.search.indexOf( 'cart=open' ) ) {
+		open( 'cart' );
+		stripParams( [ 'cart' ] );
 	}
 } )();
