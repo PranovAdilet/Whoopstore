@@ -36,6 +36,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Задача повторной отправки и счётчик попыток в мета заказа
+ * (whoopstore_telegram_schedule_retry()).
+ */
+const WHOOPSTORE_TELEGRAM_RETRY_HOOK   = 'whoopstore_telegram_retry';
+const WHOOPSTORE_TELEGRAM_ATTEMPTS_META = '_whoopstore_telegram_attempts';
+
+/**
  * Токен бота и ID чата: константа из wp-config.php, иначе — настройка.
  *
  * @return array{token: string, chat_id: string}
@@ -262,16 +269,65 @@ function whoopstore_telegram_notify_order( $order ) {
 	if ( is_wp_error( $sent ) ) {
 		// Токен из текста ошибки уже убран (whoopstore_telegram_api).
 		$logger->error( 'Не удалось отправить уведомление о заказе №' . $order->get_order_number() . ': ' . $sent->get_error_message(), $context );
-		$order->add_order_note( 'Уведомление в Telegram не отправлено: ошибка отправки (подробности — в журнале whoopstore-telegram).' );
-		$order->update_meta_data( '_whoopstore_telegram_notified', 'failed' );
-		$order->save();
+		whoopstore_telegram_schedule_retry( $order, $logger, $context );
 		return;
 	}
 
 	$order->add_order_note( 'Уведомление о заказе отправлено в Telegram.' );
 	$order->update_meta_data( '_whoopstore_telegram_notified', 'sent' );
+	$order->delete_meta_data( WHOOPSTORE_TELEGRAM_ATTEMPTS_META );
 	$order->save();
 }
+
+/**
+ * Через сколько повторять отправку после сбоя: 5 минут, 15 минут, час.
+ * Дальше — сдаёмся и оставляем заметку в заказе.
+ *
+ * @return int[]
+ */
+function whoopstore_telegram_retry_delays() {
+	return [ 5 * MINUTE_IN_SECONDS, 15 * MINUTE_IN_SECONDS, HOUR_IN_SECONDS ];
+}
+
+/**
+ * Планирует повтор отправки после сбоя связи.
+ *
+ * Сбой сети или временная ошибка Telegram не должны терять заказ: менеджер
+ * иначе просто не узнает о нём (аудит 2026-09-18, I5). Повтор ставится в
+ * штатный планировщик WooCommerce (Action Scheduler) — **на боевом сайте ему
+ * нужен рабочий cron**, см. docs/launch-checklist.md, раздел 3. Пока повтор
+ * запланирован, отметка об отправке не ставится, иначе повтор сам себя
+ * пропустит.
+ *
+ * @param WC_Order  $order   Заказ.
+ * @param WC_Logger $logger  Журнал.
+ * @param array     $context Источник журнала.
+ */
+function whoopstore_telegram_schedule_retry( $order, $logger, $context ) {
+	$delays  = whoopstore_telegram_retry_delays();
+	$attempt = (int) $order->get_meta( WHOOPSTORE_TELEGRAM_ATTEMPTS_META ) + 1;
+	$delay   = $delays[ $attempt - 1 ] ?? null;
+
+	$order->update_meta_data( WHOOPSTORE_TELEGRAM_ATTEMPTS_META, $attempt );
+
+	if ( null === $delay || ! function_exists( 'as_schedule_single_action' ) ) {
+		$order->add_order_note( 'Уведомление в Telegram не отправлено: ошибка отправки (подробности — в журнале whoopstore-telegram).' );
+		$order->update_meta_data( '_whoopstore_telegram_notified', 'failed' );
+		$order->save();
+		$logger->error( 'Повторы исчерпаны, уведомление о заказе №' . $order->get_order_number() . ' не доставлено.', $context );
+
+		return;
+	}
+
+	$order->add_order_note( sprintf( 'Уведомление в Telegram не отправлено, попытка %d. Повтор через %s.', $attempt, human_time_diff( time(), time() + $delay ) ) );
+	$order->save();
+
+	as_schedule_single_action( time() + $delay, WHOOPSTORE_TELEGRAM_RETRY_HOOK, [ 'order_id' => $order->get_id() ], 'whoopstore' );
+}
+
+// Повтор отправки: тот же код, что и при оформлении, — отметки об отправке на
+// заказе ещё нет, поэтому уведомление уйдёт заново.
+add_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, 'whoopstore_telegram_notify_order' );
 
 // Заказ из формы «Ваш заказ» (Store API) и, на всякий случай, со штатной
 // страницы /checkout/.

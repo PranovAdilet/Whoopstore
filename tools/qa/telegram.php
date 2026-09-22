@@ -257,8 +257,32 @@ $offline               = whoopstore_qa_order( 'cheque' );
 do_action( 'woocommerce_store_api_checkout_order_processed', $offline );
 $whoopstore_qa_offline = false;
 $log                   = implode( "\n", $whoopstore_qa_logged );
-whoopstore_qa_check( 'отметка failed в заказе', 'failed' === wc_get_order( $offline->get_id() )->get_meta( '_whoopstore_telegram_notified' ) );
+whoopstore_qa_check( 'отметки об отправке нет — запланирован повтор', '' === wc_get_order( $offline->get_id() )->get_meta( '_whoopstore_telegram_notified' ) );
 whoopstore_qa_check( 'в журнале токен скрыт', '' !== $log && false === strpos( $log, 'GOOD' ) && false !== strpos( $log, '***' ) );
+
+echo "\n== Повтор после сбоя связи\n";
+$whoopstore_qa_offline = true;
+$retry                 = whoopstore_qa_order( 'cheque' );
+do_action( 'woocommerce_store_api_checkout_order_processed', $retry );
+$order_id = $retry->get_id();
+whoopstore_qa_check( 'отметки об отправке нет — ждём повтора', '' === wc_get_order( $order_id )->get_meta( '_whoopstore_telegram_notified' ) );
+whoopstore_qa_check( 'попытка записана', 1 === (int) wc_get_order( $order_id )->get_meta( WHOOPSTORE_TELEGRAM_ATTEMPTS_META ) );
+whoopstore_qa_check( 'повтор запланирован', (bool) as_next_scheduled_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, [ 'order_id' => $order_id ], 'whoopstore' ) );
+
+$whoopstore_qa_sent    = [];
+$whoopstore_qa_offline = false;
+do_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, $order_id );
+whoopstore_qa_check( 'связь вернулась — уведомление ушло с повтора', 1 === count( $whoopstore_qa_sent ) );
+whoopstore_qa_check( 'отметка sent, счётчик попыток очищен', 'sent' === wc_get_order( $order_id )->get_meta( '_whoopstore_telegram_notified' ) && '' === wc_get_order( $order_id )->get_meta( WHOOPSTORE_TELEGRAM_ATTEMPTS_META ) );
+
+$whoopstore_qa_sent    = [];
+$whoopstore_qa_offline = true;
+$dead                  = whoopstore_qa_order( 'cheque' );
+$dead->update_meta_data( WHOOPSTORE_TELEGRAM_ATTEMPTS_META, count( whoopstore_telegram_retry_delays() ) );
+$dead->save();
+do_action( 'woocommerce_store_api_checkout_order_processed', $dead );
+$whoopstore_qa_offline = false;
+whoopstore_qa_check( 'попытки исчерпаны — отметка failed', 'failed' === wc_get_order( $dead->get_id() )->get_meta( '_whoopstore_telegram_notified' ) );
 
 echo "\n== Константы wp-config.php важнее настроек\n";
 define( 'WHOOPSTORE_TELEGRAM_CHAT_ID', '-999' );
