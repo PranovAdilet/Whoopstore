@@ -49,7 +49,9 @@ function whoopstore_qa_admin_screens() {
 		'Настройки → Чтение'   => [ '/wp-admin/options-reading.php', 'blog_public' ],
 		'Конфиденциальность'   => [ '/wp-admin/options-privacy.php', 'Политика конфиденциальности' ],
 		'Заказы'               => [ '/wp-admin/admin.php?page=wc-orders', 'wp-list-table' ],
-		'WooCommerce: платежи' => [ '/wp-admin/admin.php?page=wc-settings&tab=checkout', 'Тестовая оплата' ],
+		// С WooCommerce 11 экран платежей рисует JS, названий способов в
+		// разметке нет — проверяем, что открылась именно его вкладка.
+		'WooCommerce: платежи' => [ '/wp-admin/admin.php?page=wc-settings&tab=checkout', 'experimental_wc_settings_payments_main' ],
 		'WooCommerce: доставка' => [ '/wp-admin/admin.php?page=wc-settings&tab=shipping', 'Зоны доставки' ],
 		'WooCommerce: товары'  => [ '/wp-admin/admin.php?page=wc-settings&tab=products', 'whoopstore_default_delivery' ],
 		'Наш раздел Telegram'  => [ '/wp-admin/admin.php?page=wc-settings&tab=advanced&section=whoopstore_telegram', 'whoopstore_telegram_bot_token' ],
