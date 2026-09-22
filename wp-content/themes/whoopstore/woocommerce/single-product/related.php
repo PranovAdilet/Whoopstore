@@ -13,12 +13,23 @@
  * выходят за край экрана.
  *
  * @package Whoopstore
+ * @version 10.3.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
 if ( empty( $related_products ) ) {
 	return;
+}
+
+// Из шаблона ядра (10.3.0): секция идёт ниже первого экрана, поэтому её
+// картинки не должны попадать в порог «грузить сразу».
+if ( function_exists( 'wp_increase_content_media_count' ) ) {
+	$whoopstore_media_count = wp_increase_content_media_count( 0 );
+
+	if ( $whoopstore_media_count < wp_omit_loading_attr_threshold() ) {
+		wp_increase_content_media_count( wp_omit_loading_attr_threshold() - $whoopstore_media_count );
+	}
 }
 ?>
 <section class="related products related-carousel">
