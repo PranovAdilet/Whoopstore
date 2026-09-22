@@ -1164,6 +1164,18 @@ body.has-cart-drawer {
 	color: var(--wp--preset--color--on-light-faint);
 }
 
+/* Ссылка на политику внутри галочки согласия: по стандарту HTML клик по
+   ссылке внутри <label> галочку не переключает, поэтому без скриптов. */
+.checkout-consent__link {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.checkout-consent__link:hover,
+.checkout-consent__link:focus-visible {
+	color: var(--wp--preset--color--foreground);
+}
+
 .checkout-totals {
 	margin-top: 40px;
 }

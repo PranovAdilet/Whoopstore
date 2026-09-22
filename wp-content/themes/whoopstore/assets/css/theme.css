@@ -22,6 +22,25 @@ body {
 	overflow-x: hidden;
 }
 
+/* Правка 2026-09-18 (баг: на телефоне Главную можно было отдалить
+   щипком, остальные страницы — нет). body{overflow-x:hidden} выше убирает
+   горизонтальную прокрутку, но мобильные браузеры (Safari iOS, Chrome
+   Android) всё равно считают минимальный масштаб по ширине ВСЕГО
+   контента, включая вылезающее за край. На Главной вылезает намеренно:
+   mobile-свечение .straps-carousel--personalize::before шире экрана на
+   600px вправо (иначе поворот луча срезал бы его прямой линией, см. это
+   правило) — вот страница и отдалялась до этой ширины.
+   Обрезать на обёртке всей страницы, а не у свечения: у него ширина
+   нужна для рисунка, а общий ограничитель защищает и от следующих
+   full-bleed приёмов. .wp-site-blocks — на всю ширину окна (root padding
+   темы нулевой), так что край обрезки совпадает с краем экрана и визуально
+   ничего не меняется. Именно clip, а не hidden: hidden сделал бы обёртку
+   контейнером прокрутки, и залипание секции «Преимущества»
+   (position:sticky) перестало бы работать. */
+.wp-site-blocks {
+	overflow-x: clip;
+}
+
 a {
 	text-decoration: none;
 }
@@ -79,16 +98,29 @@ a {
 .activation-grid,
 .help-block,
 .advantages,
+.advantages-stats,
 .app-promo,
 .audience,
 .no-display,
 .contact-block,
 .tile-grid,
 .catalog-section,
+.site-header,
+.site-footer,
+.section-canvas,
 .compare {
 	padding-left: 40px;
 	padding-right: 40px;
 }
+
+/* Правка 2026-09-18 (QA Главной): шапка, подвал и холст .section-canvas
+   (промо ремешков, баннер «WHOOP непрерывно анализирует», «Персонализируйте»,
+   «Телеграм») добавлены в список выше. Их содержимое ограничено 1120px, а
+   собственных боковых полей не было: на 1440 его центрирует холст 1200px, но
+   на 782–1120px оно упиралось в края экрана. На 1200 и шире поле 40px ничего
+   не меняет — 1120px в него помещаются. На mobile шапка получает 20px своим
+   правилом, подвал — из мобильного списка, а у .section-canvas поле там
+   снимается: у её карточек уже есть свои 20px. */
 
 /* Внешний "резерв под фон" для .straps-carousel/.analytics-banner/
    .telegram-subscribe (см. patterns/straps-promo.php,
@@ -398,6 +430,7 @@ a {
 
 .site-header__cta .wp-block-button__link {
 	white-space: nowrap;
+	word-break: normal;
 }
 
 /* Кнопка-корзина в шапке (Figma 30:290/30:429/30:433): белый круг 40×40,
@@ -961,6 +994,20 @@ a {
 	width: 100%;
 }
 
+/* Hero переехал в синхронизированный паттерн (2026-09-18). Заодно починена
+   невалидная блочная разметка: раньше .hero-panel__content получал мусорный
+   класс `wp-block-group-` — в атрибутах стоял layout типа `flow`, которого у
+   ядра нет, и класс раскладки собирался пустым. Теперь это настоящий
+   flow-контейнер, а значит на его вторую колонку ложится block-gap ядра
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}) и фото трекера
+   съезжало бы на 24px вниз относительно карточки текста. Раньше отступа не
+   было вовсе — возвращаем это.
+   На mobile колонка скрыта (display:none), так что правило только про desktop. */
+.hero-panel__content > .hero-panel__content-right {
+	margin-block-start: 0;
+}
+
+
 .hero-panel__title,
 .hero-panel__text,
 .hero-panel__actions {
@@ -1160,8 +1207,18 @@ a {
    так что высота окна не схлопывается, когда картинка уехала за край. */
 .advantages__scroll.is-pinned .advantages__screen img {
 	transform: translateY(100%);
-	transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 	will-change: transform;
+}
+
+/* Анимируются только два слайда перехода — новый активный и только что
+   ушедший (.is-leaving ставит скрипт). Остальные меняют положение
+   мгновенно, за краем стекла, поэтому не видны. Правка 2026-09-18 (баг на
+   mobile): transition висел на всех слайдах, и быстрый свайп, который за
+   кадр перескакивает через 2–3 слайда, прогонял пропущенные экраны снизу
+   вверх сквозь стекло — одновременно с уходящим и приходящим. */
+.advantages__scroll.is-pinned .advantages__slide.is-active .advantages__screen img,
+.advantages__scroll.is-pinned .advantages__slide.is-leaving .advantages__screen img {
+	transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .advantages__scroll.is-pinned .advantages__slide.is-past .advantages__screen img {
@@ -1206,6 +1263,11 @@ a {
 .advantages__scroll.is-pinned .advantages__caption {
 	opacity: 0;
 	transform: translateY(24px);
+}
+
+/* Как и у экранов выше — анимируются только два слайда перехода. */
+.advantages__scroll.is-pinned .advantages__slide.is-active .advantages__caption,
+.advantages__scroll.is-pinned .advantages__slide.is-leaving .advantages__caption {
 	transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1434,6 +1496,60 @@ a {
    остаётся на одной линии с соседями по ряду, высота карточек не разъезжается.
    Это не "класс на каждый экземпляр" (правило 14): отличие реальное, оно
    есть в самом макете. */
+/* Правка 2026-09-18: нижняя половина «Преимуществ» (заголовок, 15 карточек,
+   кнопка) — синхронизированный паттерн «Главная — 15 показателей здоровья»
+   (wp_block 299), отдельная группа .advantages-stats сразу после .advantages.
+   Разметка стала блочной, и правила ниже возвращают прежнюю геометрию там,
+   где её перебивает раскладка ядра. Прежние правила не тронуты.
+
+   1. Отступ секции переехал с заголовка на корень: заголовок теперь первый
+      потомок constrained-группы, и ядро обнуляет ему верх правилом
+      :root :where(.is-layout-constrained) > :first-child (0,2,0) — та же
+      ловушка, что разобрана у .section-canvas.
+   2. Ширина заголовка — на самом <h3>, а не на <span> внутри: span не формат
+      Gutenberg, RichText выбросил бы его при первой правке (приём из
+      .telegram-subscribe__title / .no-display__title). margin-left:0
+      !important — ядро центрирует потомка constrained-группы с собственной
+      max-width через margin-inline:auto !important, а по макету заголовок
+      стоит слева.
+   3. Сетка, карточка и тело карточки — flow-группы, ядро даёт их потомкам
+      margin-block-start:24px (0,1,0). В гриде и во flex-колонке карточки
+      этот отступ сложился бы с gap; раньше это были простые <div>/<span>
+      без таких отступов. Адресно, не «> *»: у заголовка карточки и у
+      подзаголовка «Дополнительно в WHOOP MG:» свои отступы.
+   4. Слот картинки — первый потомок карточки, и правило ядра :first-child
+      (0,2,0) обнулило бы его margin-top:25px из базового правила выше.
+      Значение то же; VO₂ Max ниже по-прежнему перебивает его своими 3px.
+   5. Скрытая часть прячется классом, а не атрибутом hidden: у группы блоков
+      такого атрибута нет. CSS стоит в <head>, поэтому часть скрыта с
+      первой отрисовки — скачка вёрстки нет, как и раньше. Класс is-open
+      ставит assets/js/advantages-more.js. В редакторе часть показывается
+      всегда (assets/css/editor.css), иначе её карточки нельзя было бы
+      править. */
+.advantages-stats {
+	margin-top: var(--wp--custom--section-gap--default, 140px);
+}
+
+.advantages-stats > .advantages__stats-title {
+	max-width: 600px;
+	margin-left: 0 !important;
+}
+
+.advantages__stats > .advantages__stat,
+.advantages__stat > .advantages__stat-body,
+.advantages__stat-body > .advantages__stat-text,
+.advantages__more > .advantages__stats {
+	margin-block-start: 0;
+}
+
+.advantages__stat > .advantages__stat-media {
+	margin-top: 25px;
+}
+
+.advantages__more:not(.is-open) {
+	display: none;
+}
+
 .advantages__stat--media-tall .advantages__stat-media {
 	max-height: 168px;
 	margin-top: 3px;
@@ -1516,7 +1632,14 @@ a {
 	position: relative;
 	aspect-ratio: 1 / 1;
 	border-radius: var(--wp--custom--radius--card);
-	background: repeating-linear-gradient(135deg, #14171c 0 2px, var(--wp--preset--color--surface) 2px 30px);
+	/* Заглушка для товара без фото (правка 2026-09-18, QA карточки товара):
+	   цвет карточки и приглушённый знак WHOOP по центру — тот же файл, что
+	   WooCommerce отдаёт вместо фото на странице товара и в корзине (фильтр
+	   woocommerce_placeholder_img_src в inc/woocommerce/template-hooks.php).
+	   Раньше здесь была техническая штриховка времён вёрстки. Слот с фото
+	   перекрывает фон целиком (.device-card__media--has-photo), у карточек
+	   тарифов фон снят их собственным правилом. */
+	background: var(--wp--preset--color--surface) url('../icons/product-placeholder.svg') center / contain no-repeat;
 	margin-bottom: 16px;
 }
 
@@ -2154,7 +2277,10 @@ a {
 	display: flex;
 	align-items: center;
 	gap: 24px;
-	height: 372px;
+	/* min-height, а не height (правка 2026-09-18, QA Главной, Д-4): при
+	   жёсткой высоте на узком desktop текст переставал помещаться и вылезал
+	   за карточку сверху и снизу. Пока содержимое влезает, вид тот же. */
+	min-height: 372px;
 	padding: 40px;
 	text-align: center;
 }
@@ -2177,6 +2303,21 @@ a {
 	flex: 1 1 auto;
 	min-width: 0;
 }
+
+/* Обе секции переехали в синхронизированные паттерны (волна 1), из-за чего
+   .analytics-banner и .balance-banner стали блоками-группами. Обе — flex
+   с align-items:center, поэтому layout:constrained у них снят (иначе правило
+   ядра `.is-layout-constrained > * {margin-inline:auto !important}` съело бы
+   раскладку — тот же случай, что у Телеграма в 6.1). Осталась flow-раскладка,
+   и её block-gap сдвигал бы вторую колонку на 24px вниз относительно первой.
+
+   Правило адресное: гасим отступ только у контентных колонок, декоративные
+   __media его и так не получают (они первые дети). */
+.analytics-banner > .analytics-banner__content,
+.balance-banner > .balance-banner__content {
+	margin-block-start: 0;
+}
+
 
 /* Аудит 2026-09-09: подтверждённая ширина параграфа в Figma — 368px (node
    1:506), а не 560 — при 560 текст переносился по другой границе, чем в
@@ -2244,6 +2385,19 @@ a {
 	gap: 30px;
 	padding: 30px;
 }
+
+/* Секция переехала в синхронизированный паттерн (волна 1): .app-promo__list и
+   сами карточки стали блоками-группами и впервые получили is-layout-flow.
+   Раньше это были сырые div, то есть никаких отступов у детей не было вовсе —
+   расстояния задавали только grid-gap списка (20px) и flex-gap карточки (30px).
+   Ядро добавляет block-gap (:root :where(.is-layout-flow) > * {24px}), из-за
+   чего вторая и третья карточки съезжали бы вниз относительно первой, а кнопка
+   внутри карточки — относительно текста. Возвращаем прежнее: отступов нет. */
+.app-promo__list > .app-promo__card,
+.app-promo__card > * {
+	margin-block-start: 0;
+}
+
 
 .app-promo__icon {
 	width: 30px;
@@ -2761,6 +2915,16 @@ a {
 	gap: 30px;
 }
 
+/* Секция переехала в синхронизированный паттерн (волна 1): карточка-заключение
+   стала блоком-группой и впервые получила is-layout-flow. Она flex с
+   align-items:center, поэтому block-gap ядра сдвинул бы текстовую колонку на
+   24px вниз относительно фото (на mobile — добавился бы к gap:24px колонки).
+   Раньше это был сырой div, отступов у детей не было вовсе. */
+.no-display__closing-card > .no-display__closing-content {
+	margin-block-start: 0;
+}
+
+
 /* Аудит 2026-09-07: раньше был sm=14px + приглушённый цвет — сверка с
    raw-дампом (node 1:315) показала 20px, сплошной белый, с частью фразы
    ("автоматически анализируются") полужирным — не мелкое описание, а
@@ -2981,6 +3145,79 @@ a {
 	margin: 0 30px 22px;
 }
 
+/* ---------- FAQ на core/details (этап 6.3) ---------- */
+
+/* Секция переехала в синхронизированный паттерн на штатный блок core/details.
+   У него <summary> не несёт никакого класса, поэтому правила ниже повторяют
+   .faq__question для новой разметки.
+
+   Старые селекторы (.faq__question, .faq__chevron) СОХРАНЕНЫ намеренно:
+   patterns/faq-accordion.php ещё лежит в репозитории, и откат 6.3 должен
+   оставаться одной командой — вернуть шаблоны. Когда старые паттерны будут
+   удалены по отдельной команде, эти дубли уйдут вместе с ними. */
+.faq__item > summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 80px;
+	padding: 0 30px;
+	cursor: pointer;
+	font-weight: 500;
+	font-size: var(--wp--preset--font-size--md);
+	line-height: 0.99;
+	letter-spacing: -0.4px;
+	list-style: none;
+}
+
+.faq__item > summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Иконка «плюс» — тот же файл, что раньше вставлялся инлайновым SVG, поэтому
+   геометрия та же. Поворот на 45° так же превращает её в «крестик».
+   `:not(.faq__question)` — у старой разметки класс на <summary> есть, у новой
+   класса нет вовсе: так при откате на паттерн вторая иконка не появится. */
+.faq__item > summary:not(.faq__question)::after {
+	content: "";
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	background: currentColor;
+	-webkit-mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
+	mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
+	transition: transform 0.2s ease;
+}
+
+.faq__item[open] > summary:not(.faq__question)::after {
+	transform: rotate(45deg);
+}
+
+/* Компенсация block-gap ядра: .faq и .faq__list впервые стали
+   layout-контейнерами Gutenberg. Без этого контент секции съезжает на 24px
+   внутри фотозоны, а между карточками вместо gap:15px получается 39px. */
+.faq > .faq__content,
+.faq__list > .faq__item {
+	margin-block-start: 0;
+}
+
+/* Нижний отступ раскрытого ответа. core/details — layout-контейнер, а абзац
+   ответа в нём последний ребёнок, поэтому правило ядра
+   `:root :where(.is-layout-flow) > :last-child {margin-block-end: 0}`
+   обнуляло 22px из `.faq__answer`. Специфичности: у ядра (0,2,0) —
+   :root плюс :last-child, :where() не считается; у `.faq__answer` всего
+   (0,1,0), поэтому ядро выигрывало и ответ прилипал к низу карточки.
+   В старой разметке этого не было: у <details> не было класса раскладки.
+
+   Селектор ниже — (0,3,0), то есть выигрывает по специфичности, а не по
+   порядку подключения файлов. Значение то же самое, что в .faq__answer,
+   новых величин не вводим. Старой разметке правило не мешает: там цепочка
+   .faq__list > .faq__item > .faq__answer такая же, а значение совпадает с
+   уже действующим. */
+.faq__list > .faq__item > .faq__answer {
+	margin-block-end: 22px;
+}
+
 /* ---------- Contact block ---------- */
 
 .contact-block {
@@ -2988,6 +3225,21 @@ a {
 	display: flex;
 	gap: 20px;
 	align-items: stretch;
+}
+
+/* Секция переехала в синхронизированный паттерн (этап 6.2): .contact-block и
+   .contact-block__messengers-wrapper стали блоками-группами и впервые получили
+   от Gutenberg is-layout-flow. Ядро вешает на их потомков block-gap
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}) — инфо-карточка
+   съезжала бы на 24px относительно карты и ломала align-items:stretch, а иконки
+   мессенджеров — относительно юр. строки.
+
+   Правило адресное, а не `> *`: у p.contact-block__legal есть собственный
+   margin-top:auto со специфичностью (0,1,1), которым юр. строка прижата к низу
+   карточки, и общее правило (0,2,0) его бы перебило. */
+.contact-block > .contact-block__info,
+.contact-block__messengers-wrapper > .contact-block__messengers {
+	margin-block-start: 0;
 }
 
 .contact-block__map,
@@ -3135,6 +3387,17 @@ p.contact-block__legal {
 	padding: 0;
 }
 
+/* Секция переехала в синхронизированный паттерн (этап 6.1), из-за чего
+   .telegram-subscribe стала блоком-группой, а её колонки — потомками
+   layout-контейнера Gutenberg. Ядро вешает на таких потомков block-gap
+   (:root :where(.is-layout-flow) > * {margin-block-start:24px}), и телефон
+   съезжал вниз относительно текста. Гасим только этот отступ: вертикальную
+   раскладку секции задаёт flex выше, а не поток. Селектор с родителем
+   (0,2,0) — правило ядра идёт со специфичностью одиночного класса. */
+.telegram-subscribe > * {
+	margin-block-start: 0;
+}
+
 .telegram-subscribe__content {
 	flex: 0 1 420px;
 	min-width: 0;
@@ -3146,6 +3409,18 @@ p.contact-block__legal {
    собственным max-width через margin:auto !important). */
 .telegram-subscribe__title-text {
 	display: inline-block;
+	max-width: 323px;
+}
+
+/* То же ограничение, но на самом заголовке (2026-09-18). Внутренний <span> убран
+   из контента: это не формат Gutenberg, и RichText выбросил бы его при первой
+   правке заголовка заказчиком — ширина молча слетела бы. Раньше вешать max-width
+   на сам <h2> было нельзя: ядро центрирует прямого потомка .is-layout-constrained
+   через margin-inline:auto !important. После этапа 6.1 .telegram-subscribe__content
+   — flow-контейнер, и это ограничение отпало.
+   Правило для span оставлено: старый patterns/telegram-subscribe.php ещё лежит
+   в репозитории как точка отката. */
+.telegram-subscribe__title {
 	max-width: 323px;
 }
 
@@ -3841,6 +4116,18 @@ p.contact-block__legal {
 	margin: 30px 0 0;
 }
 
+/* ---------- Страницы без собственного шаблона ---------- */
+
+/* Политика конфиденциальности и личный кабинет выводятся общим
+   templates/index.html: заголовок и содержимое лежат прямо в <main>. Боковых
+   отступов у него нет (в theme.json не задан root padding, поэтому
+   --wp--style--root--padding-* = 0), и на узком экране текст упирался в край.
+   Остальные страницы сюда не попадают: у них свои шаблоны и свои секции. */
+.wp-site-blocks main > .wp-block-post-title,
+.wp-site-blocks main > .wp-block-post-content {
+	padding-inline: 20px;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 781px) {
@@ -3884,15 +4171,25 @@ p.contact-block__legal {
 	.activation-grid,
 	.help-block,
 	.advantages,
+	.advantages-stats,
 	.app-promo,
 	.audience,
 	.no-display,
 	.contact-block,
 	.tile-grid,
 	.catalog-section,
+	.site-footer,
 	.compare {
 		padding-left: 20px;
 		padding-right: 20px;
+	}
+
+	/* Пара к общему списку полей 40px (см. «Правка 2026-09-18» выше): на
+	   mobile поле у холста не нужно — его карточки держат свои 20px, и двойной
+	   отступ изменил бы принятый мобильный вид. */
+	.section-canvas {
+		padding-left: 0;
+		padding-right: 0;
 	}
 
 	.analytics-banner__title {
@@ -4226,6 +4523,24 @@ p.contact-block__legal {
 		text-wrap: balance;
 	}
 
+	/* FAQ на core/details: те же значения, что у .faq__question выше.
+	   Ширину текста вопроса раньше держал <span class="faq__question-text">,
+	   которого в summary больше нет — текст стал анонимным элементом и
+	   напрямую не таргетируется, поэтому ограничиваем его колонкой грида. */
+	.faq__item > summary {
+		display: grid;
+		grid-template-columns: minmax(0, 224px) 1fr;
+		align-items: center;
+		gap: 10px;
+		font-size: 16px;
+		letter-spacing: -0.32px;
+		text-wrap: balance;
+	}
+
+	.faq__item > summary:not(.faq__question)::after {
+		justify-self: end;
+	}
+
 
 	/* Аудит 2026-09-09: было отдельное min-height:320px — mobile-узел фото
 	   (`1:3645`) 692px высотой, столько же, сколько на desktop (не
@@ -4391,6 +4706,16 @@ p.contact-block__legal {
 		max-width: 220px;
 	}
 
+	/* Шаг слайда на mobile длиннее desktop-ного (правка 2026-09-18, баг
+	   «слишком быстро листается»). 40svh — это 4–5 щелчков колеса на
+	   desktop, но на телефоне всего ~260px, а обычный свайп с инерцией
+	   проезжает 1000–3000px, то есть пролетал 3–5 слайдов разом. 75svh ≈
+	   500px — примерно один неторопливый свайп на слайд. Скрипт читает эту
+	   же переменную, отдельно ему число не передаётся. */
+	.advantages__scroll.is-pinned {
+		--advantages-step: 75;
+	}
+
 	/* Правка 2026-09-10 (визуальный диф скрина Figma-мобилки vs стейдж,
 	   секция "Более 15 ключевых показателей"): на стейдже была сетка 2×4 с
 	   вертикальной карточкой (картинка сверху, текст снизу) — это desktop-
@@ -4483,6 +4808,13 @@ p.contact-block__legal {
 	.advantages__stats-subtitle {
 		margin-top: 40px;
 		margin-bottom: 12px;
+	}
+
+	/* Пара к правилу 4 из блока «Правка 2026-09-18» выше: там margin-top:25px
+	   поднят до (0,2,0), поэтому мобильный ноль из базового правила слота
+	   картинки (0,1,0) нужно повторить той же специфичностью. */
+	.advantages__stat > .advantages__stat-media {
+		margin-top: 0;
 	}
 
 	/* Правка 2026-09-10 (при вёрстке страницы "Ремешки для WHOOP 5.0"):
@@ -5165,6 +5497,23 @@ p.contact-block__legal {
 		padding-inline: 0;
 		-webkit-mask-image: none;
 		mask-image: none;
+		/* Привязка к кадру (правка 2026-09-18, баг «лента на телефоне
+		   неестественная»): без неё свайп останавливал ленту где попало, и
+		   выбранный ремешок не вставал под плашку. Центр — потому что
+		   плашка стоит по центру ленты (как в макете, над 4-м кадром из 7).
+		   overscroll-behavior — чтобы свайп у края ленты не уходил в жест
+		   «назад» браузера и не тянул страницу. Доворот ряда по кругу —
+		   в assets/js/straps-carousel.js, он же по этой привязке ставит
+		   средний кадр на старте. */
+		scroll-snap-type: x mandatory;
+		overscroll-behavior-x: contain;
+	}
+
+	/* Один свайп — один ремешок: без snap-stop инерция проскакивала бы
+	   несколько кадров (шаг здесь всего 166px). */
+	.straps-carousel--personalize .straps-carousel__photo {
+		scroll-snap-align: center;
+		scroll-snap-stop: always;
 	}
 
 	.straps-carousel--personalize .straps-carousel__badge {
@@ -5227,6 +5576,7 @@ p.contact-block__legal {
 	   поэтому gap:0 и явный margin у каждого элемента. */
 	.analytics-banner {
 		height: auto;
+		min-height: 0;
 		gap: 0;
 		padding: 30px;
 		align-items: stretch;
@@ -5316,6 +5666,18 @@ p.contact-block__legal {
 	.no-display__title span {
 		display: inline-block;
 		max-width: 244px;
+	}
+
+	/* То же ограничение на самом заголовке — внутренний <span> убран из контента
+	   (см. комментарий у .telegram-subscribe__title). Здесь .no-display остаётся
+	   constrained-контейнером, поэтому нужен margin-left:0 !important: ядро
+	   вешает на потомка с собственной max-width margin-left/right:auto !important
+	   и центрирует его, а по макету заголовок стоит по левому краю. Перебиваем
+	   только левую сторону — правый auto на левовыровненном блоке ни на что не
+	   влияет. Тот же приём уже применён у .telegram-subscribe__text. */
+	.no-display__title {
+		max-width: 244px;
+		margin-left: 0 !important;
 	}
 
 	/* Правка 2026-09-09 (round 5): mobile-геометрия карточки из raw-дампа
@@ -5529,6 +5891,10 @@ p.contact-block__legal {
 	   упиралась в колонку 320px). Размер шрифта (26px/-0.26px) уже
 	   приходит из общего mobile-оверрайда .section-heading. */
 	.telegram-subscribe__title-text {
+		max-width: 266px;
+	}
+
+	.telegram-subscribe__title {
 		max-width: 266px;
 	}
 
@@ -5885,5 +6251,124 @@ p.contact-block__legal {
 	.compare-plans__value .compare-check {
 		width: 20px;
 		height: 20px;
+	}
+}
+
+/* Правка 2026-09-18 (QA Главной, дефект Д-2): на 601–781px мобильная сетка в
+   одну колонку растягивала карточку товара до ~730px, и её фото (пропорция
+   300×196) становилось крупнее исходника и мутным. Здесь карточки идут по две
+   в ряд: на 768 карточка ~358px — ровно ширина из мобильного макета. Ниже
+   600px одна колонка выглядит нормально и не трогается.
+
+   Карточки тарифов (.device-card--plan: «Активация и продление» на Главной,
+   тарифы на «Подписках») исключены: у них жёсткая композиция телефон + фото
+   ≈302px плюс поля 30+30, при двух колонках она помещается только от ~776px.
+   «Приложения» и «15 показателей» тоже остаются в одну колонку: картинки там
+   маленькие и фиксированные, не растут вместе с карточкой. */
+@media (min-width: 601px) and (max-width: 781px) {
+	.device-grid__list,
+	.accessories-grid__list,
+	.catalog-section__list:not(:has(> .device-card--plan)) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* Правка 2026-09-18 (QA Главной, дефекты Д-3 и Д-4): узкий desktop, 782–1046px.
+
+   Д-3 «Почему у WHOOP нет экрана?»: картинка стоит абсолютно (68px от
+   правого края, ширина 425px), текст занимает слева 86 + 388px. Они
+   пересекаются, когда карточка уже 967px, то есть на экране ≤1046px (поля
+   секции 2×40). Здесь картинка уходит в поток под текст и встаёт по центру,
+   прижатая к нижнему краю, — та же схема, что уже работает на mobile.
+
+   Д-4 «WHOOP непрерывно анализирует»: картинка 448px не сужается, и колонке
+   текста остаётся всё меньше места. Здесь картинка встаёт над текстом, как
+   на mobile; зазор — прежний gap: 24px. */
+@media (min-width: 782px) and (max-width: 1046px) {
+	.no-display__card {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		min-height: 0;
+		padding-right: 86px;
+		padding-bottom: 0;
+	}
+
+	.no-display__media-wrap {
+		position: relative;
+		right: auto;
+		bottom: auto;
+		align-self: center;
+		margin-top: 40px;
+	}
+
+	.analytics-banner {
+		flex-direction: column;
+	}
+
+	.analytics-banner__media {
+		width: 100%;
+		max-width: 448px;
+	}
+}
+
+/* Правка 2026-09-18 (QA «Подписок»): карточка «Сравните преимущества» на
+   узком desktop, 782–1199px. Текст стоит абсолютно (86px слева, ширина 388px,
+   правый край — 474px), три телефона тоже (60px справа, общая ширина
+   187 + 243 + 187 − 2×36.5 = 544px). При фиксированных телефонах они
+   пересекались на экране ≤1157px (поля секции 2×40).
+
+   970–1199px: композиция как на desktop, но телефоны уменьшаются вместе с
+   экраном. Места под группу телефонов: экран − 80 (поля) − 60 − 474 − 40
+   (зазор до текста) = 100vw − 654px; взято 670px — ещё ~15px на полосу
+   прокрутки, которую 100vw тоже включает. Ширины — доли от 544px: 187/544,
+   243/544, −36.5/544; в сумме ровно ширина группы, так что зазор до текста
+   всегда ≥40px. Пропорции экранов держит aspect-ratio, обрезка — прежняя
+   (object-fit: cover, привязка к верху). На 1200px и шире — исходные 187/243.
+
+   782–969px: компактный столбик, как на mobile: текст по центру, телефоны
+   под ним в том же размере, что на 970px, — без скачка на границе. */
+@media (min-width: 970px) and (max-width: 1199px) {
+	.compare-card__phone {
+		width: min(187px, calc((100vw - 670px) * 0.34375));
+		height: auto;
+		aspect-ratio: 187 / 318;
+	}
+
+	.compare-card__phone--main {
+		width: min(243px, calc((100vw - 670px) * 0.446691));
+		aspect-ratio: 243 / 413;
+		margin-inline: max(-36.5px, calc((100vw - 670px) * -0.0670956));
+	}
+}
+
+@media (min-width: 782px) and (max-width: 969px) {
+	.compare-card {
+		height: auto;
+		padding: 60px 40px 0;
+	}
+
+	.compare-card__intro {
+		position: static;
+		max-width: 100%;
+		margin-inline: auto;
+	}
+
+	.compare-card__phones {
+		position: static;
+		justify-content: center;
+		margin-top: 32px;
+	}
+
+	.compare-card__phone {
+		width: 103px;
+		height: auto;
+		aspect-ratio: 187 / 318;
+	}
+
+	.compare-card__phone--main {
+		width: 134px;
+		aspect-ratio: 243 / 413;
+		margin-inline: -20px;
 	}
 }

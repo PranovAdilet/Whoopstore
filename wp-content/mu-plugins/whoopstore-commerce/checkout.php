@@ -103,7 +103,15 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 		return;
 	}
 
-	$chosen    = (array) WC()->session->get( 'chosen_shipping_methods', [] );
+	$chosen = (array) WC()->session->get( 'chosen_shipping_methods', [] );
+
+	// Способ доставки не выбран (выбранный пропал — cdek.php): адрес проверять
+	// рано, Store API сам откажет с «выберите способ доставки». Иначе покупатель
+	// получил бы не относящееся к делу «Укажите улицу и дом».
+	if ( ! array_filter( $chosen ) ) {
+		return;
+	}
+
 	$is_pickup = (bool) array_filter( $chosen, function ( $rate_id ) {
 		return 0 === strpos( (string) $rate_id, 'local_pickup' );
 	} );
@@ -117,6 +125,35 @@ function whoopstore_validate_checkout_request( $order, $request ) {
 		'postcode'  => 'индекс',
 		'address_1' => 'улицу и дом',
 	];
+
+	// СДЭК до пункта выдачи (cdek.php): нужен выбранный ПВЗ, из адреса — только
+	// город, по которому считался тариф. Плагин при оформлении через Store API
+	// выбор ПВЗ не проверяет и сохраняет любой присланный код.
+	$cdek_kind = function_exists( 'whoopstore_cdek_chosen_kind' ) ? whoopstore_cdek_chosen_kind() : '';
+
+	if ( in_array( $cdek_kind, [ 'office', 'postamat' ], true ) ) {
+		$office = whoopstore_cdek_requested_office( $request );
+
+		if ( ! $office ) {
+			throw new RouteException( 'whoopstore_cdek_office_required', __( 'Order pickup point not selected.', 'cdekdelivery' ), 400 );
+		}
+
+		// Код сверяется со списком пунктов города — тем, что форма показывала
+		// на карте, — и с типом пункта, куда везёт тариф (ПВЗ или постамат).
+		// Если СДЭК не отдал список (сбой API), код принимается без сверки, как
+		// раньше: отказывать в заказе из-за сбоя на стороне СДЭК нельзя, а
+		// менеджер увидит код ПВЗ без адреса.
+		$expected_type = 'postamat' === $cdek_kind ? 'POSTAMAT' : 'PVZ';
+
+		if ( $office['verified'] && ( ! $office['found'] || $expected_type !== $office['type'] ) ) {
+			throw new RouteException( 'whoopstore_cdek_office_invalid', 'Выбранный пункт выдачи недоступен для этого адреса. Выберите пункт на карте заново.', 400 );
+		}
+
+		$order->update_meta_data( WHOOPSTORE_CDEK_OFFICE_META, '' !== $office['address'] ? $office['code'] . ' — ' . $office['address'] : $office['code'] );
+		$required = [ 'city' => 'город' ];
+	} elseif ( function_exists( 'whoopstore_cdek_chosen_kind' ) ) {
+		$order->delete_meta_data( WHOOPSTORE_CDEK_OFFICE_META );
+	}
 
 	foreach ( $required as $key => $label ) {
 		$getter = 'get_shipping_' . $key;
@@ -143,3 +180,52 @@ add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
 
 	return $gateways;
 } );
+
+/**
+ * ЮKassa на staging — только с тестовым ключом.
+ *
+ * Правило проекта: на staging никаких боевых ключей и реальных списаний.
+ * Тестовый секретный ключ ЮKassa начинается с «test_», боевой — с «live_».
+ * С любым другим ключом (или без него — например, при подключении через
+ * OAuth, где тест от боя здесь не отличить) способы оплаты ЮKassa на staging
+ * покупателю не предлагаются, и форма оформления берёт «Тестовую оплату».
+ * На боевом окружении фильтр ничего не делает.
+ */
+add_filter( 'woocommerce_available_payment_gateways', function ( $gateways ) {
+	if ( 'staging' !== wp_get_environment_type()
+		|| 0 === strpos( (string) get_option( 'yookassa_shop_password' ), 'test_' ) ) {
+		return $gateways;
+	}
+
+	foreach ( array_keys( $gateways ) as $id ) {
+		if ( 0 === strpos( (string) $id, 'yookassa' ) ) {
+			unset( $gateways[ $id ] );
+		}
+	}
+
+	return $gateways;
+} );
+
+/**
+ * Выключенный «Плати частями» ЮKassa не грузит свой виджет.
+ *
+ * ЮKassa 2.17.1 (YooKassaSberBnpl::showInfo() и соседние методы) подключает
+ * скрипт виджета с yookassa.ru и свои стили на странице товара ещё до
+ * проверки, включён ли способ. Способ выключен — снимаем их из очереди, пока
+ * они не выведены: в блочной теме страница собирается до wp_head, в
+ * классической вывод может быть и позже — отсюда два хука. Стиль общий с
+ * блоком рассрочки, поэтому он снимается, только если выключено и то и другое.
+ */
+function whoopstore_dequeue_disabled_yookassa_widgets() {
+	if ( '1' === get_option( 'yookassa_sber_bnpl_enabled' ) ) {
+		return;
+	}
+
+	wp_dequeue_script( 'yookassa-sber-bnpl-widget' );
+
+	if ( '1' !== get_option( 'yookassa_epl_installments' ) && '1' !== get_option( 'yookassa_add_installments_block' ) ) {
+		wp_dequeue_style( 'yookassa' );
+	}
+}
+add_action( 'wp_head', 'whoopstore_dequeue_disabled_yookassa_widgets', 0 );
+add_action( 'wp_footer', 'whoopstore_dequeue_disabled_yookassa_widgets', 0 );

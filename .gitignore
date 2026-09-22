@@ -9,9 +9,10 @@
 # 1) Игнорировать всё в корне по умолчанию.
 /*
 
-# 2) Разрешить сам .gitignore и проектные правила.
+# 2) Разрешить сам .gitignore, проектные правила и служебные скрипты проверки.
 !/.gitignore
 !/CLAUDE.md
+!/tools/
 
 # 3) wp-content: открыть путь, закрыть содержимое по умолчанию.
 !/wp-content/
@@ -28,6 +29,8 @@
 !/wp-content/mu-plugins/whoopstore-staging-guard.php
 !/wp-content/mu-plugins/whoopstore-commerce.php
 !/wp-content/mu-plugins/whoopstore-commerce/
+!/wp-content/mu-plugins/whoopstore-site.php
+!/wp-content/mu-plugins/whoopstore-site/
 
 # ---------------------------------------------------------------------
 # Дополнительная защита: эти файлы/паттерны никогда не попадают в
@@ -45,6 +48,9 @@ wp-config.php
 *.pem
 id_rsa*
 *credentials*
+
+# Результат прогона tools/qa/smoke.php — временные HTML-дампы страниц.
+/tools/qa/out/
 
 # Локальные вспомогательные материалы для вёрстки (дампы/заметки Figma MCP).
 # Хранятся только на диске стенда, в репозиторий не попадают.

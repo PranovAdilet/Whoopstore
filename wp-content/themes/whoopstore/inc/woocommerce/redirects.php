@@ -77,3 +77,35 @@ add_action( 'template_redirect', function () {
 	wp_safe_redirect( home_url( $map[ $term->slug ] ), 301 );
 	exit;
 } );
+
+/**
+ * Служебные страницы WooCommerce «Корзина» и «Оформление заказа» — на Главную
+ * с открытой корзиной.
+ *
+ * В макете этих страниц нет: покупатель оформляет заказ в выезжающей корзине.
+ * Удалить их нельзя — от страницы оформления WooCommerce строит служебные
+ * адреса «Оплатить заказ» (туда возвращает ЮKassa при неудачной оплате) и
+ * «Заказ получен». Поэтому перенаправляется только сама страница, без
+ * служебных окончаний и без параметров в адресе: с параметрами приходят
+ * штатные сценарии WooCommerce (оплата заказа по ссылке, добавление товара
+ * по ссылке `?add-to-cart=`).
+ *
+ * Корзину на Главной открывает assets/js/cart-drawer.js по `?cart=open`.
+ */
+add_action( 'template_redirect', function () {
+	if ( ! function_exists( 'is_cart' ) || is_admin() ) {
+		return;
+	}
+
+	if ( ! is_cart() && ! is_checkout() ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- только факт наличия параметров.
+	if ( is_wc_endpoint_url() || ! empty( $_GET ) ) {
+		return;
+	}
+
+	wp_safe_redirect( home_url( '/?cart=open' ), 302 );
+	exit;
+}, 5 );

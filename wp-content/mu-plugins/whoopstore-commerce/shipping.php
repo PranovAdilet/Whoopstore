@@ -61,3 +61,50 @@ add_filter( 'woocommerce_package_rates', function ( $rates ) {
 
 	return $rates;
 } );
+
+/**
+ * Где забрать заказ — в письме покупателю и магазину.
+ *
+ * WooCommerce печатает в письме адрес доставки, но у самовывоза и у доставки
+ * в пункт выдачи адреса доставки нет: покупатель не видит, куда ехать.
+ * Адрес самовывоза берётся из подписи способа доставки (настройка в зоне),
+ * пункт выдачи СДЭК — из заказа (cdek.php). Ничего не выдумывается: если
+ * адрес не заполнен, строки нет.
+ *
+ * @param WC_Order $order         Заказ.
+ * @param bool     $sent_to_admin Письмо магазину.
+ * @param bool     $plain_text    Текстовое письмо.
+ */
+add_action( 'woocommerce_email_order_meta', function ( $order, $sent_to_admin, $plain_text ) {
+	$lines = [];
+
+	foreach ( $order->get_shipping_methods() as $item ) {
+		if ( 0 !== strpos( (string) $item->get_method_id(), 'local_pickup' ) ) {
+			continue;
+		}
+
+		$method  = WC_Shipping_Zones::get_shipping_method( $item->get_instance_id() );
+		$address = $method ? trim( (string) $method->get_option( 'whoopstore_description' ) ) : '';
+
+		if ( '' !== $address ) {
+			$lines[] = 'Самовывоз: ' . $address;
+		}
+	}
+
+	$office = function_exists( 'whoopstore_cdek_order_office' ) ? whoopstore_cdek_order_office( $order ) : '';
+
+	if ( '' !== $office ) {
+		$lines[] = 'Пункт выдачи СДЭК: ' . $office;
+	}
+
+	if ( ! $lines ) {
+		return;
+	}
+
+	if ( $plain_text ) {
+		echo "\n" . esc_html( implode( "\n", $lines ) ) . "\n";
+		return;
+	}
+
+	echo '<p style="margin:0 0 16px;">' . implode( '<br>', array_map( 'esc_html', $lines ) ) . '</p>';
+}, 10, 3 );

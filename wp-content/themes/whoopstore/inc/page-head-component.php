@@ -21,10 +21,38 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Печатает хлебные крошки подстраницы (.page-head__crumbs).
+ *
+ * Вынесены из whoopstore_page_head() отдельной функцией: тот же узел нужен
+ * блоку контента страницы, где H1 редактируется в Gutenberg отдельно от
+ * крошек, а сами крошки остаются за кодом — иконки лежат в теме, и путь к
+ * ним не должен попадать в контент страницы.
+ *
+ * Отступы разметки намеренно сохранены такими, какими они были внутри
+ * whoopstore_page_head() (2 таба у <nav>), а вызов в самой page_head стоит
+ * с начала строки: вывод обеих функций вместе обязан совпадать со старым
+ * побайтово, иначе сверка дампов "до/после" перестаёт что-либо доказывать.
+ *
+ * @param string $label Текст последней (текущей) крошки, напр. "Whoop MG".
+ */
+function whoopstore_breadcrumbs( $label ) {
+	?>
+		<nav class="page-head__crumbs" aria-label="Хлебные крошки">
+			<a class="page-head__crumb-home" href="/" aria-label="Главная">
+				<img src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-home.svg' ) ); ?>" alt="" width="15" height="15" />
+			</a>
+			<img class="page-head__crumb-sep" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-separator.svg' ) ); ?>" alt="" width="15" height="15" />
+			<span class="page-head__crumb-current" aria-current="page"><?php echo esc_html( $label ); ?></span>
+		</nav>
+<?php
+}
+
+/**
  * Печатает шапку контента подстраницы.
  *
  * @param array $args {
  *     @type string $crumb  Текст последней (текущей) крошки, напр. "Whoop MG".
+ *                          Печатается whoopstore_breadcrumbs().
  *     @type string $title  Первая строка H1, напр. "Ремешки для WHOOP MG".
  *     @type string $accent Вторая, акцентная строка H1, напр. "(более 25 цветов)".
  *                          Если пусто — H1 остаётся однострочным.
@@ -46,13 +74,7 @@ function whoopstore_page_head( array $args ) {
 	$class  = isset( $args['class'] ) ? ' ' . $args['class'] : '';
 	?>
 	<div class="page-head<?php echo esc_attr( $class ); ?>">
-		<nav class="page-head__crumbs" aria-label="Хлебные крошки">
-			<a class="page-head__crumb-home" href="/" aria-label="Главная">
-				<img src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-home.svg' ) ); ?>" alt="" width="15" height="15" />
-			</a>
-			<img class="page-head__crumb-sep" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-separator.svg' ) ); ?>" alt="" width="15" height="15" />
-			<span class="page-head__crumb-current" aria-current="page"><?php echo esc_html( $crumb ); ?></span>
-		</nav>
+<?php whoopstore_breadcrumbs( $crumb ); ?>
 
 		<h1 class="page-head__title section-heading">
 			<?php echo esc_html( $title ); ?>

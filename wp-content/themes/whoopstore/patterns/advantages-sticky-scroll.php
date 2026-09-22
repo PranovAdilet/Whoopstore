@@ -3,6 +3,15 @@
  * Title: Advantages
  * Slug: whoopstore/advantages-sticky-scroll
  *
+ * Правка 2026-09-18: здесь осталась только верхняя половина секции — слайды
+ * с залипанием. Нижняя («Более 15 ключевых показателей…», 15 карточек и
+ * кнопка «Посмотреть ещё») перенесена в синхронизированный паттерн
+ * «Главная — 15 показателей здоровья» (wp_block 299, стоит в
+ * templates/front-page.html сразу после этого паттерна), чтобы её тексты
+ * правились в редакторе. Скрипт залипания нижнюю часть не трогал: он
+ * работает только внутри .advantages__scroll. Подробности —
+ * docs/migration-shared-sections.md.
+ *
  * Правка 2026-09-11 (pinned-скролл слайдов — возврат механики, теперь по
  * подтверждённой аннотации). История: 2026-09-04 sticky-scroll был убран,
  * потому что на тот момент механика была моим домыслом — в присланных
@@ -191,124 +200,6 @@ $whoopstore_advantages_slides = [
 		</div>
 	</div>
 	<!-- /wp:html -->
-
-	<!-- Аудит 2026-09-07 (единая типографика): было has-lg-font-size (22px)
-	— по raw-дампу Figma (node 1:498) это section-heading (32px), слева, с
-	ведущей фразой ("Более 15 ключевых показателей") полужирным, а не всей
-	строкой целиком, как раньше (наследовала глобальный вес 600). -->
-	<!-- wp:heading {"level":3,"className":"advantages__stats-title section-heading"} -->
-	<h3 class="wp-block-heading advantages__stats-title section-heading"><span><strong>Более 15 ключевых показателей</strong> здоровья, сна и восстановления</span></h3>
-	<!-- /wp:heading -->
-
-	<!-- wp:html -->
-	<div class="advantages__stats">
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/IMG_9252-3.webp" alt="Recovery 97%" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Recovery</span><span class="advantages__stat-text section-subtext">Уровень восстановления организма</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100254.webp" alt="Sleep Performance 82%" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Sleep Performance</span><span class="advantages__stat-text section-subtext">Продолжительность <br /> и качество сна</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/IMG_9252-1.webp" alt="Strain 4.8" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Strain</span><span class="advantages__stat-text section-subtext">Дневная физиологическая нагрузка</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100255.webp" alt="HRV 48ms" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Heart Rate Variability</span><span class="advantages__stat-text section-subtext">Вариабельность <br /> сердечного ритма (HRV)</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100285.webp" alt="RHR 67bpm" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Resting Heart Rate</span><span class="advantages__stat-text section-subtext">Пульс в покое</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100274.webp" alt="Stress Monitor 1.0" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Stress Monitor</span><span class="advantages__stat-text section-subtext">Уровень физиологического стресса</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100277.webp" alt="Respiratory Rate 13.7rpm" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Respiratory Rate</span><span class="advantages__stat-text section-subtext">Частота дыхания во сне</span></div>
-		</div>
-		<div class="advantages__stat card">
-			<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100275.webp" alt="Blood Oxygen 91%" loading="lazy" /></div>
-			<div class="advantages__stat-body"><span class="advantages__stat-title">Blood Oxygen (SpO&#8322;)</span><span class="advantages__stat-text section-subtext">Уровень насыщения <br /> крови кислородом</span></div>
-		</div>
-	</div>
-
-	<!-- Правка 2026-09-11 (раскрытие секции показателей): скрытая часть,
-	которую раскрывает и сворачивает кнопка под сеткой
-	(assets/js/advantages-more.js).
-	Источник — состояние "Раскрытый" из Figma (fileKey fUlpHpWsnxx78nCZKPxkkj,
-	node 1:561, дамп docs/figma-design/raw/states/1-561-raskrytyy-desktop.code.tsx.txt):
-	3-й ряд из 4 карточек + подзаголовок "Дополнительно в WHOOP MG:" + ещё 3
-	карточки. Порядок и тексты — построчно по дампу (узлы 1:805…1:866).
-	Сетка та же (.advantages__stats), чтобы раскрытые карточки попадали в те
-	же 4 колонки и читались как продолжение первых восьми, а не как отдельный
-	блок (правило 14 — один источник стилей карточки).
-	hidden отдаётся сервером, а не навешивается скриптом: иначе при загрузке
-	карточки успевали бы отрисоваться и схлопнуться уже после footer-скрипта
-	(видимый скачок вёрстки). -->
-	<div class="advantages__more" id="advantages-more" data-label-more="Посмотреть ещё" data-label-less="Свернуть" hidden>
-		<div class="advantages__stats">
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100289.webp" alt="Skin Temp -0,3 &deg;C" width="157" height="110" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">Skin Temperature</span><span class="advantages__stat-text section-subtext">Изменения температуры кожи относительно вашей нормы</span></div>
-			</div>
-			<!-- Единственная карточка с высокой картинкой (183×168 против
-			127-128px у остальных) — в макете она так и нарисована крупнее,
-			см. node 1:865. Модификатор только меняет размер слота, высота
-			самой карточки и позиция заголовка остаются общими. -->
-			<div class="advantages__stat advantages__stat--media-tall card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100290-1.webp" alt="VO&#8322; Max" width="183" height="168" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">VO&#8322; Max</span><span class="advantages__stat-text section-subtext">Оценка максимального потребления кислорода</span></div>
-			</div>
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100290-2.webp" alt="Menstrual Cycle Insights" width="203" height="110" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">Women&#8217;s Hormonal Insights</span><span class="advantages__stat-text section-subtext">Влияние менструального цикла на показатели организма</span></div>
-			</div>
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/IMG_9252-5.webp" alt="WHOOP Age 30.6" width="128" height="127" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">WHOOP Age и Pace of Aging</span><span class="advantages__stat-text section-subtext">Оценка биологического возраста и скорости старения</span></div>
-			</div>
-		</div>
-
-		<h4 class="advantages__stats-subtitle">Дополнительно в WHOOP MG:</h4>
-
-		<div class="advantages__stats">
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100290.webp" alt="Heart Screener" width="204" height="85" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">Heart Screener (ЭКГ)</span><span class="advantages__stat-text section-subtext">Запись электрокардиограммы прямо с браслета</span></div>
-			</div>
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100291-1.webp" alt="Blood Pressure Insights 109/71" width="204" height="91" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">Blood Pressure Insights</span><span class="advantages__stat-text section-subtext">Ежедневная оценка артериального давления</span></div>
-			</div>
-			<div class="advantages__stat card">
-				<div class="advantages__stat-media"><img src="/wp-content/uploads/2026/09/Rectangle-100291.webp" alt="Normal Sinus Rhythm" width="204" height="91" loading="lazy" /></div>
-				<div class="advantages__stat-body"><span class="advantages__stat-title">Уведомления</span><span class="advantages__stat-text section-subtext">о нерегулярном сердечном ритме</span></div>
-			</div>
-		</div>
-	</div>
-	<!-- /wp:html -->
-
-	<!-- className на самом блоке core/button (а не ручные атрибуты на <a>) —
-	чтобы разметка осталась валидной для блочного редактора: скрипт находит
-	кнопку по этому классу и сам навешивает role/aria-expanded.
-	Правка 2026-09-11 (2): по прямой просьбе пользователя кнопка работает как
-	тумблер и подписью "Свернуть" сворачивает раскрытую часть обратно. В Figma
-	такого состояния нет (в кадре "Раскрытый" кнопки под сеткой нет вообще) —
-	это осознанное решение сверх макета, а не находка в дампе. Обе подписи
-	лежат в data-атрибутах на самом .advantages__more (он внутри wp:html, то
-	есть сырая разметка) — вешать их на <a> внутри core/button нельзя: лишний
-	атрибут в core-блоке ломает валидацию блока в редакторе. -->
-	<!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
-	<div class="wp-block-buttons">
-		<!-- wp:button {"className":"advantages__more-toggle"} -->
-		<div class="wp-block-button advantages__more-toggle"><a class="wp-block-button__link wp-element-button" href="#advantages-more">Посмотреть ещё</a></div>
-		<!-- /wp:button -->
-	</div>
-	<!-- /wp:buttons -->
 
 </div>
 <!-- /wp:group -->

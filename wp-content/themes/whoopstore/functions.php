@@ -20,3 +20,12 @@ require_once get_theme_file_path( 'inc/woocommerce/single-product.php' );
 require_once get_theme_file_path( 'inc/woocommerce/product-accordions.php' );
 require_once get_theme_file_path( 'inc/woocommerce/cart-ui.php' );
 require_once get_theme_file_path( 'inc/woocommerce/redirects.php' );
+
+// Подсветка текущего раздела в меню. После redirects.php: пользуется его
+// картой «категория → страница каталога».
+require_once get_theme_file_path( 'inc/navigation.php' );
+
+// Динамические блоки темы. Подключаются последними: их render использует
+// функции из inc/ выше (крошки, разделы каталога), а регистрация скриптов —
+// whoopstore_asset_version() из inc/setup.php.
+require_once get_theme_file_path( 'inc/blocks.php' );

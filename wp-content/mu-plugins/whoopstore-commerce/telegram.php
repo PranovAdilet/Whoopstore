@@ -5,11 +5,22 @@
  * По ТЗ в сообщении: имя, телефон, состав корзины, адрес, сумма. Сюда же —
  * e-mail, Telegram покупателя, способ доставки и оплаты, комментарий.
  *
- * Секреты — только в wp-config.php, не в БД и не в git:
+ * Когда уходит: при онлайн-оплате (ЮKassa) — только после подтверждённой
+ * оплаты, иначе менеджер получал бы и заказы, брошенные на странице оплаты,
+ * не отличая их от оплаченных. При остальных способах — в момент оформления.
+ *
+ * Токен бота и ID чата заказчик вписывает сам: WooCommerce → Настройки →
+ * Дополнительно → Telegram (telegram-admin.php, там же проверка отправки и
+ * поиск чата). Доступа к файлам сайта у заказчика нет, поэтому значения
+ * хранятся в опциях — как и ключи ЮKassa. В git их нет. Константы в
+ * wp-config.php, если заданы, важнее настроек:
  *   define( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN', '...' );
  *   define( 'WHOOPSTORE_TELEGRAM_CHAT_ID', '...' );
  * Необязательно — если api.telegram.org недоступен с хостинга:
  *   define( 'WHOOPSTORE_TELEGRAM_API_BASE', 'https://...' );
+ *
+ * Сообщения не с боевого окружения помечаются «[staging]», чтобы тестовый
+ * заказ в чате менеджеров не приняли за настоящий.
  *
  * Пока токена или чата нет, сообщение не отправляется, а его текст пишется в
  * журнал WooCommerce (WooCommerce → Статус → Журналы, источник
@@ -22,6 +33,80 @@
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+/**
+ * Токен бота и ID чата: константа из wp-config.php, иначе — настройка.
+ *
+ * @return array{token: string, chat_id: string}
+ */
+function whoopstore_telegram_credentials() {
+	$token = defined( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN' ) ? WHOOPSTORE_TELEGRAM_BOT_TOKEN : get_option( 'whoopstore_telegram_bot_token', '' );
+	$chat  = defined( 'WHOOPSTORE_TELEGRAM_CHAT_ID' ) ? WHOOPSTORE_TELEGRAM_CHAT_ID : get_option( 'whoopstore_telegram_chat_id', '' );
+
+	return [
+		'token'   => trim( (string) $token ),
+		'chat_id' => trim( (string) $chat ),
+	];
+}
+
+/**
+ * Вызов метода Bot API.
+ *
+ * Токен в тексте ошибки заменяется на «***»: ошибка уходит в журнал и в
+ * админку.
+ *
+ * @param string $method Метод Bot API, напр. sendMessage.
+ * @param array  $params Параметры.
+ * @return mixed|WP_Error Поле result ответа или ошибка (в data — HTTP-статус).
+ */
+function whoopstore_telegram_api( $method, $params = [] ) {
+	$token = whoopstore_telegram_credentials()['token'];
+
+	if ( '' === $token ) {
+		return new WP_Error( 'whoopstore_telegram_no_token', 'Не задан токен бота.' );
+	}
+
+	$base     = defined( 'WHOOPSTORE_TELEGRAM_API_BASE' ) ? rtrim( (string) WHOOPSTORE_TELEGRAM_API_BASE, '/' ) : 'https://api.telegram.org';
+	$response = wp_remote_post( $base . '/bot' . $token . '/' . $method, [
+		'timeout' => 5,
+		'body'    => $params,
+	] );
+
+	if ( is_wp_error( $response ) ) {
+		return new WP_Error( 'whoopstore_telegram_http', str_replace( $token, '***', $response->get_error_message() ), [ 'status' => 0 ] );
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+	if ( 200 !== $code || ! is_array( $body ) || empty( $body['ok'] ) ) {
+		$description = is_array( $body ) && isset( $body['description'] ) ? (string) $body['description'] : wp_remote_retrieve_body( $response );
+
+		return new WP_Error( 'whoopstore_telegram_api', str_replace( $token, '***', 'HTTP ' . $code . ' ' . $description ), [ 'status' => $code ] );
+	}
+
+	return $body['result'];
+}
+
+/**
+ * Отправляет текст в чат уведомлений.
+ *
+ * @param string $text Текст сообщения.
+ * @return true|WP_Error
+ */
+function whoopstore_telegram_send( $text ) {
+	if ( 'production' !== wp_get_environment_type() ) {
+		$text = "[staging]\n" . $text;
+	}
+
+	$result = whoopstore_telegram_api( 'sendMessage', [
+		'chat_id'                  => whoopstore_telegram_credentials()['chat_id'],
+		'text'                     => $text,
+		'disable_web_page_preview' => 'true',
+	] );
+
+	return is_wp_error( $result ) ? $result : true;
 }
 
 /**
@@ -65,8 +150,9 @@ function whoopstore_telegram_price( $amount, $order ) {
 function whoopstore_telegram_message( $order ) {
 	$lines   = [];
 	$lines[] = 'Новый заказ №' . $order->get_order_number();
-	// Статус не пишем: уведомление уходит в момент оформления, до оплаты, и
-	// статус в этот момент — ещё черновик. Способ оплаты — в конце сообщения.
+	// Статус не пишем: при оплате без перехода уведомление уходит в момент
+	// оформления, и статус тогда — ещё черновик. Способ оплаты — в конце
+	// сообщения, с отметкой, если заказ уже оплачен.
 	$lines[] = '';
 	$lines[] = 'Имя: ' . trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
 	$lines[] = 'Телефон: ' . $order->get_billing_phone();
@@ -109,20 +195,41 @@ function whoopstore_telegram_message( $order ) {
 		$lines[] = 'Адрес: ' . implode( ', ', $address );
 	}
 
+	// СДЭК до пункта выдачи: код и адрес ПВЗ (сохраняются при оформлении, cdek.php).
+	$office = function_exists( 'whoopstore_cdek_order_office' ) ? whoopstore_cdek_order_office( $order ) : '';
+
+	if ( '' !== $office ) {
+		$lines[] = 'ПВЗ СДЭК: ' . $office;
+	}
+
 	if ( '' !== $order->get_customer_note() ) {
 		$lines[] = 'Комментарий: ' . $order->get_customer_note();
 	}
 
-	$lines[] = 'Оплата: ' . $order->get_payment_method_title();
+	$lines[] = 'Оплата: ' . $order->get_payment_method_title() . ( $order->is_paid() ? ' — оплачено' : '' );
 	$lines[] = 'Итого: ' . whoopstore_telegram_price( $order->get_total(), $order );
 
 	return implode( "\n", $lines );
 }
 
 /**
+ * Оплачивается ли заказ онлайн — через ЮKassa (id всех её способов оплаты
+ * начинаются с «yookassa»).
+ *
+ * @param WC_Order $order Заказ.
+ * @return bool
+ */
+function whoopstore_is_online_payment( $order ) {
+	return 0 === strpos( (string) $order->get_payment_method(), 'yookassa' );
+}
+
+/**
  * Отправляет (или, без настроек, журналирует) уведомление о заказе.
  *
  * Повторно по тому же заказу не срабатывает — отметка в мета заказа.
+ * Неоплаченный заказ с онлайн-оплатой пропускается без отметки: уведомление
+ * уйдёт, когда оплата подтвердится (woocommerce_payment_complete ниже).
+ * Повторные попытки оплаты того же заказа его не дублируют.
  *
  * @param WC_Order|int $order Заказ или его id.
  */
@@ -133,13 +240,16 @@ function whoopstore_telegram_notify_order( $order ) {
 		return;
 	}
 
+	if ( whoopstore_is_online_payment( $order ) && ! $order->is_paid() ) {
+		return;
+	}
+
 	$logger  = wc_get_logger();
 	$context = [ 'source' => 'whoopstore-telegram' ];
 	$text    = whoopstore_telegram_message( $order );
-	$token   = defined( 'WHOOPSTORE_TELEGRAM_BOT_TOKEN' ) ? (string) WHOOPSTORE_TELEGRAM_BOT_TOKEN : '';
-	$chat_id = defined( 'WHOOPSTORE_TELEGRAM_CHAT_ID' ) ? (string) WHOOPSTORE_TELEGRAM_CHAT_ID : '';
+	$config  = whoopstore_telegram_credentials();
 
-	if ( '' === $token || '' === $chat_id ) {
+	if ( '' === $config['token'] || '' === $config['chat_id'] ) {
 		$logger->info( "Telegram не настроен, сообщение не отправлено:\n" . $text, $context );
 		$order->add_order_note( 'Уведомление в Telegram не отправлено: бот не настроен (текст — в журнале whoopstore-telegram).' );
 		$order->update_meta_data( '_whoopstore_telegram_notified', 'skipped' );
@@ -147,22 +257,11 @@ function whoopstore_telegram_notify_order( $order ) {
 		return;
 	}
 
-	$base     = defined( 'WHOOPSTORE_TELEGRAM_API_BASE' ) ? rtrim( (string) WHOOPSTORE_TELEGRAM_API_BASE, '/' ) : 'https://api.telegram.org';
-	$response = wp_remote_post( $base . '/bot' . $token . '/sendMessage', [
-		'timeout' => 5,
-		'body'    => [
-			'chat_id'                  => $chat_id,
-			'text'                     => $text,
-			'disable_web_page_preview' => 'true',
-		],
-	] );
+	$sent = whoopstore_telegram_send( $text );
 
-	$code = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
-
-	if ( 200 !== $code ) {
-		// Токен не должен попасть в журнал вместе с текстом ошибки.
-		$error = is_wp_error( $response ) ? $response->get_error_message() : 'HTTP ' . $code . ' ' . wp_remote_retrieve_body( $response );
-		$logger->error( 'Не удалось отправить уведомление о заказе №' . $order->get_order_number() . ': ' . str_replace( $token, '***', $error ), $context );
+	if ( is_wp_error( $sent ) ) {
+		// Токен из текста ошибки уже убран (whoopstore_telegram_api).
+		$logger->error( 'Не удалось отправить уведомление о заказе №' . $order->get_order_number() . ': ' . $sent->get_error_message(), $context );
 		$order->add_order_note( 'Уведомление в Telegram не отправлено: ошибка отправки (подробности — в журнале whoopstore-telegram).' );
 		$order->update_meta_data( '_whoopstore_telegram_notified', 'failed' );
 		$order->save();
@@ -178,5 +277,11 @@ function whoopstore_telegram_notify_order( $order ) {
 // страницы /checkout/.
 add_action( 'woocommerce_store_api_checkout_order_processed', 'whoopstore_telegram_notify_order' );
 add_action( 'woocommerce_checkout_order_processed', function ( $order_id ) {
+	whoopstore_telegram_notify_order( $order_id );
+} );
+
+// Подтверждённая оплата: ЮKassa вызывает WC_Order::payment_complete() по
+// уведомлению о платеже, после этого заказ уже в статусе «Обработка».
+add_action( 'woocommerce_payment_complete', function ( $order_id ) {
 	whoopstore_telegram_notify_order( $order_id );
 } );
