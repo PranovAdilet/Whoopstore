@@ -207,40 +207,91 @@ if ( ! $product ) {
 
 echo 'Товар: #' . $product->get_id() . ' ' . $product->get_name() . "\n";
 
+/**
+ * Отвечает ли СДЭК. Проверяем его собственным вызовом: у учебного аккаунта
+ * эндпоинт location/cities возвращал пустой список на любой запрос
+ * (2026-09-22, воспроизводится и обычным curl, мимо WordPress). Без кода
+ * города плагин не считает тарифы и не отдаёт пункты выдачи, поэтому разделы
+ * СДЭК тогда проверять нечем: это сбой внешнего сервиса, а не наша ошибка.
+ */
+function whoopstore_qa_cdek_ready() {
+	try {
+		return null !== ( new \Cdek\CdekApi() )->cityCodeGet( 'Санкт-Петербург', '190000' );
+	} catch ( Throwable $e ) {
+		return false;
+	}
+}
+
+$cdek_ready = whoopstore_qa_cdek_ready();
+
+if ( ! $cdek_ready ) {
+	echo "\nВНИМАНИЕ: СДЭК не отвечает кодами городов — разделы СДЭК и ПВЗ пропущены.\n";
+	echo "Проверить их можно, когда СДЭК ответит или когда появятся ключи заказчика.\n";
+}
+
 echo "\n== Новая корзина: способ по умолчанию\n";
 whoopstore_qa_fresh_cart( $product->get_id() );
 $cart = whoopstore_qa_cart();
 echo whoopstore_qa_line( $cart );
 whoopstore_qa_check( 'выбран первый способ по порядку («Экспресс»)', 0 === strpos( whoopstore_qa_selected( $cart ), 'flat_rate' ), whoopstore_qa_selected( $cart ) );
 
-echo "\n== I3: выбран курьер СДЭК, город неизвестен СДЭК\n";
-$cart    = whoopstore_qa_address( 'Москва', '101000' );
-$courier = whoopstore_qa_rate( $cart, 'official_cdek' );
-whoopstore_qa_check( 'для Москвы есть тариф СДЭК', '' !== $courier, $courier );
-$cart = whoopstore_qa_select( $courier );
-whoopstore_qa_check( 'СДЭК выбран', whoopstore_qa_selected( $cart ) === $courier );
-$cart = whoopstore_qa_address( 'Абвгдейкаград', '999999' );
-echo whoopstore_qa_line( $cart );
-whoopstore_qa_check( 'тарифа СДЭК больше нет', '' === whoopstore_qa_rate( $cart, 'official_cdek' ) );
-whoopstore_qa_check( 'вместо него не выбран другой способ', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
-whoopstore_qa_check( 'и при повторном чтении корзины тоже', '' === whoopstore_qa_selected( whoopstore_qa_cart() ) );
-list( $status, $message ) = whoopstore_qa_checkout( 'Абвгдейкаград', '999999', 'ул. Тестовая, 1' );
-whoopstore_qa_check( 'оформление без способа доставки отклонено', 400 === $status, $status . ' ' . $message );
-$cart = whoopstore_qa_address( 'Москва', '101000' );
-whoopstore_qa_check( 'город вернули — вернулся прежний выбор', whoopstore_qa_selected( $cart ) === $courier, whoopstore_qa_selected( $cart ) );
+if ( $cdek_ready ) {
+	echo "\n== I3: выбран курьер СДЭК, город неизвестен СДЭК\n";
+	$cart    = whoopstore_qa_address( 'Москва', '101000' );
+	$courier = whoopstore_qa_rate( $cart, 'official_cdek' );
+	whoopstore_qa_check( 'для Москвы есть тариф СДЭК', '' !== $courier, $courier );
+	$cart = whoopstore_qa_select( $courier );
+	whoopstore_qa_check( 'СДЭК выбран', whoopstore_qa_selected( $cart ) === $courier );
+	$cart = whoopstore_qa_address( 'Абвгдейкаград', '999999' );
+	echo whoopstore_qa_line( $cart );
+	whoopstore_qa_check( 'тарифа СДЭК больше нет', '' === whoopstore_qa_rate( $cart, 'official_cdek' ) );
+	whoopstore_qa_check( 'вместо него не выбран другой способ', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
+	whoopstore_qa_check( 'и при повторном чтении корзины тоже', '' === whoopstore_qa_selected( whoopstore_qa_cart() ) );
+	list( $status, $message ) = whoopstore_qa_checkout( 'Абвгдейкаград', '999999', 'ул. Тестовая, 1' );
+	whoopstore_qa_check( 'оформление без способа доставки отклонено', 400 === $status, $status . ' ' . $message );
+	$cart = whoopstore_qa_address( 'Москва', '101000' );
+	whoopstore_qa_check( 'город вернули — вернулся прежний выбор', whoopstore_qa_selected( $cart ) === $courier, whoopstore_qa_selected( $cart ) );
 
-echo "\n== I3: выбран курьер СДЭК, API СДЭК не отвечает\n";
+	echo "\n== I3: выбран курьер СДЭК, API СДЭК не отвечает\n";
+	whoopstore_qa_fresh_cart( $product->get_id() );
+	$cart    = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
+	$courier = whoopstore_qa_rate( $cart, 'official_cdek:137' ) ?: whoopstore_qa_rate( $cart, 'official_cdek' );
+	whoopstore_qa_select( $courier );
+	$whoopstore_qa_cdek_down = true;
+	$cart                    = whoopstore_qa_address( 'Санкт-Петербург', '190001' );
+	$whoopstore_qa_cdek_down = false;
+	echo whoopstore_qa_line( $cart );
+	whoopstore_qa_check( 'выбор не подменён', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
+	$cart = whoopstore_qa_select( whoopstore_qa_rate( $cart, 'local_pickup' ) );
+	whoopstore_qa_check( 'покупатель сам выбрал «Самовывоз» — принято', 0 === strpos( whoopstore_qa_selected( $cart ), 'local_pickup' ), whoopstore_qa_selected( $cart ) );
+}
+
+echo "\n== Выбранный способ исчез из набора (без участия СДЭК)\n";
+
+// Та же защита, что и для тарифов СДЭК (I3), но воспроизведённая без
+// внешнего сервиса: способ убирается из набора фильтром. Так проверка
+// работает, даже когда СДЭК недоступен.
 whoopstore_qa_fresh_cart( $product->get_id() );
-$cart    = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
-$courier = whoopstore_qa_rate( $cart, 'official_cdek:137' ) ?: whoopstore_qa_rate( $cart, 'official_cdek' );
-whoopstore_qa_select( $courier );
-$whoopstore_qa_cdek_down = true;
-$cart                    = whoopstore_qa_address( 'Санкт-Петербург', '190001' );
-$whoopstore_qa_cdek_down = false;
+$express = whoopstore_qa_rate( whoopstore_qa_cart(), 'flat_rate' );
+whoopstore_qa_select( $express );
+$whoopstore_qa_hide = function ( $rates ) use ( $express ) {
+	unset( $rates[ $express ] );
+
+	return $rates;
+};
+
+add_filter( 'woocommerce_package_rates', $whoopstore_qa_hide, 100 );
+WC_Cache_Helper::get_transient_version( 'shipping', true );
+$cart = whoopstore_qa_cart();
 echo whoopstore_qa_line( $cart );
-whoopstore_qa_check( 'выбор не подменён', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
-$cart = whoopstore_qa_select( whoopstore_qa_rate( $cart, 'local_pickup' ) );
-whoopstore_qa_check( 'покупатель сам выбрал «Самовывоз» — принято', 0 === strpos( whoopstore_qa_selected( $cart ), 'local_pickup' ), whoopstore_qa_selected( $cart ) );
+whoopstore_qa_check( 'способ пропал — другой не подставлен', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
+list( $status, $message ) = whoopstore_qa_checkout( 'Москва', '101000', 'ул. Тестовая, 1' );
+whoopstore_qa_check( 'оформление отклонено', 400 === $status && false !== mb_stripos( $message, 'способ доставки' ), $status . ' ' . $message );
+
+remove_filter( 'woocommerce_package_rates', $whoopstore_qa_hide, 100 );
+WC_Cache_Helper::get_transient_version( 'shipping', true );
+$cart = whoopstore_qa_cart();
+whoopstore_qa_check( 'способ вернулся — вернулся и выбор', whoopstore_qa_selected( $cart ) === $express, whoopstore_qa_selected( $cart ) );
 
 echo "\n== «Экспресс» и «Самовывоз» при смене города\n";
 whoopstore_qa_fresh_cart( $product->get_id() );
@@ -264,86 +315,88 @@ whoopstore_qa_api( 'DELETE', 'cart/items' );
 whoopstore_qa_api( 'POST', 'cart/add-item', [ 'id' => $product->get_id(), 'quantity' => 1 ] );
 whoopstore_qa_check( 'новая корзина снова со способом по умолчанию', '' !== whoopstore_qa_selected( whoopstore_qa_cart() ), whoopstore_qa_selected( whoopstore_qa_cart() ) );
 
-echo "\n== I4: код ПВЗ при оформлении\n";
+if ( $cdek_ready ) {
+	echo "\n== I4: код ПВЗ при оформлении\n";
 
-/**
- * Новая корзина, город, выбранный тариф до ПВЗ — и оформление с кодом пункта.
- * Каждая попытка — с чистой корзины: принятый заказ её очищает.
- */
-function whoopstore_qa_pvz_attempt( $product_id, $office_code, $drop_cache = false, $cdek_down = false ) {
-	global $whoopstore_qa_cdek_down;
+	/**
+	 * Новая корзина, город, выбранный тариф до ПВЗ — и оформление с кодом пункта.
+	 * Каждая попытка — с чистой корзины: принятый заказ её очищает.
+	 */
+	function whoopstore_qa_pvz_attempt( $product_id, $office_code, $drop_cache = false, $cdek_down = false ) {
+		global $whoopstore_qa_cdek_down;
 
-	whoopstore_qa_fresh_cart( $product_id );
-	$cart = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
-	$rate = '';
+		whoopstore_qa_fresh_cart( $product_id );
+		$cart = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
+		$rate = '';
 
-	foreach ( whoopstore_qa_rates( $cart ) as $item ) {
-		if ( 'office' === ( $cart['extensions']['whoopstore']['cdek']['rates'][ $item['rate_id'] ]['kind'] ?? '' ) ) {
-			$rate = $item['rate_id'];
+		foreach ( whoopstore_qa_rates( $cart ) as $item ) {
+			if ( 'office' === ( $cart['extensions']['whoopstore']['cdek']['rates'][ $item['rate_id'] ]['kind'] ?? '' ) ) {
+				$rate = $item['rate_id'];
+			}
 		}
+
+		if ( '' === $rate ) {
+			return [ 0, 'нет тарифа до ПВЗ', 0 ];
+		}
+
+		whoopstore_qa_select( $rate );
+
+		if ( $drop_cache ) {
+			WC()->session->set( 'official_cdek_office_list_cache', null );
+		}
+
+		$whoopstore_qa_cdek_down = $cdek_down;
+		$result                  = whoopstore_qa_checkout( 'Санкт-Петербург', '190000', '', $office_code );
+		$whoopstore_qa_cdek_down = false;
+
+		return $result;
 	}
 
-	if ( '' === $rate ) {
-		return [ 0, 'нет тарифа до ПВЗ', 0 ];
+	whoopstore_qa_fresh_cart( $product->get_id() );
+	$cart      = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
+	$pvz       = whoopstore_qa_points( $cart, 'PVZ' );
+	$postamats = whoopstore_qa_points( $cart, 'POSTAMAT' );
+	$moscow    = whoopstore_qa_points( whoopstore_qa_address( 'Москва', '101000' ), 'PVZ' );
+	whoopstore_qa_check( 'в корзине есть список ПВЗ города', count( $pvz ) > 0 && count( $moscow ) > 0, 'СПб: ' . count( $pvz ) . ' ПВЗ, ' . count( $postamats ) . ' постаматов; Москва: ' . count( $moscow ) . ' ПВЗ' );
+
+	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), null );
+	whoopstore_qa_check( 'без кода ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
+
+	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), 'ZZZ999' );
+	whoopstore_qa_check( 'несуществующий код ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
+
+	if ( $postamats ) {
+		list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $postamats[0]['code'] );
+		whoopstore_qa_check( 'постамат при тарифе до ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
 	}
 
-	whoopstore_qa_select( $rate );
+	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $moscow[0]['code'] ?? 'MSK' );
+	whoopstore_qa_check( 'ПВЗ другого города — отказ', 400 === $status, $status . ' ' . $message );
 
-	if ( $drop_cache ) {
-		WC()->session->set( 'official_cdek_office_list_cache', null );
-	}
+	list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'] );
+	$saved = $order_id ? (string) wc_get_order( $order_id )->get_meta( WHOOPSTORE_CDEK_OFFICE_META ) : '';
+	whoopstore_qa_check( 'настоящий ПВЗ города — заказ принят', 200 === $status && $order_id > 0, $status . ' ' . $message );
+	whoopstore_qa_check( 'в заказе код и адрес ПВЗ', false !== strpos( $saved, $pvz[0]['code'] . ' — ' ), $saved );
 
-	$whoopstore_qa_cdek_down = $cdek_down;
-	$result                  = whoopstore_qa_checkout( 'Санкт-Петербург', '190000', '', $office_code );
-	$whoopstore_qa_cdek_down = false;
+	// Кэш списка пунктов у плагина живёт 5 минут, а покупатель мог заполнять
+	// форму дольше. Проверка должна работать и без кэша.
+	list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true );
+	whoopstore_qa_check( 'кэш плагина истёк — ПВЗ всё равно проверен, заказ принят', 200 === $status && $order_id > 0, $status . ' ' . $message );
+	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), 'ZZZ999', true );
+	whoopstore_qa_check( 'кэш плагина истёк — несуществующий код всё равно отклонён', 400 === $status, $status . ' ' . $message );
 
-	return $result;
+	// Список пунктов СДЭК не отдал (сбой API), а тариф уже посчитан: сверить не
+	// с чем. Заказ не теряем — код принимается без сверки, как до проверки
+	// (ограничение описано в cdek.php и checkout.php).
+	list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true, 'deliverypoints' );
+	$saved = $order_id ? (string) wc_get_order( $order_id )->get_meta( WHOOPSTORE_CDEK_OFFICE_META ) : '';
+	whoopstore_qa_check( 'список пунктов недоступен — заказ принят с кодом ПВЗ без адреса', 200 === $status && $saved === $pvz[0]['code'], trim( $status . ' ' . $message . ' ' . $saved ) );
+
+	// СДЭК не отвечает вовсе: пропадает сам тариф до ПВЗ. Оформление отклоняется
+	// с просьбой выбрать способ доставки (I3), а не с чужой ошибкой адреса.
+	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true, true );
+	whoopstore_qa_check( 'СДЭК не отвечает — отказ «выберите способ доставки»', 400 === $status && false !== mb_stripos( $message, 'способ доставки' ), $status . ' ' . $message );
 }
-
-whoopstore_qa_fresh_cart( $product->get_id() );
-$cart      = whoopstore_qa_address( 'Санкт-Петербург', '190000' );
-$pvz       = whoopstore_qa_points( $cart, 'PVZ' );
-$postamats = whoopstore_qa_points( $cart, 'POSTAMAT' );
-$moscow    = whoopstore_qa_points( whoopstore_qa_address( 'Москва', '101000' ), 'PVZ' );
-whoopstore_qa_check( 'в корзине есть список ПВЗ города', count( $pvz ) > 0 && count( $moscow ) > 0, 'СПб: ' . count( $pvz ) . ' ПВЗ, ' . count( $postamats ) . ' постаматов; Москва: ' . count( $moscow ) . ' ПВЗ' );
-
-list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), null );
-whoopstore_qa_check( 'без кода ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
-
-list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), 'ZZZ999' );
-whoopstore_qa_check( 'несуществующий код ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
-
-if ( $postamats ) {
-	list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $postamats[0]['code'] );
-	whoopstore_qa_check( 'постамат при тарифе до ПВЗ — отказ', 400 === $status, $status . ' ' . $message );
-}
-
-list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $moscow[0]['code'] ?? 'MSK' );
-whoopstore_qa_check( 'ПВЗ другого города — отказ', 400 === $status, $status . ' ' . $message );
-
-list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'] );
-$saved = $order_id ? (string) wc_get_order( $order_id )->get_meta( WHOOPSTORE_CDEK_OFFICE_META ) : '';
-whoopstore_qa_check( 'настоящий ПВЗ города — заказ принят', 200 === $status && $order_id > 0, $status . ' ' . $message );
-whoopstore_qa_check( 'в заказе код и адрес ПВЗ', false !== strpos( $saved, $pvz[0]['code'] . ' — ' ), $saved );
-
-// Кэш списка пунктов у плагина живёт 5 минут, а покупатель мог заполнять
-// форму дольше. Проверка должна работать и без кэша.
-list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true );
-whoopstore_qa_check( 'кэш плагина истёк — ПВЗ всё равно проверен, заказ принят', 200 === $status && $order_id > 0, $status . ' ' . $message );
-list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), 'ZZZ999', true );
-whoopstore_qa_check( 'кэш плагина истёк — несуществующий код всё равно отклонён', 400 === $status, $status . ' ' . $message );
-
-// Список пунктов СДЭК не отдал (сбой API), а тариф уже посчитан: сверить не
-// с чем. Заказ не теряем — код принимается без сверки, как до проверки
-// (ограничение описано в cdek.php и checkout.php).
-list( $status, $message, $order_id ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true, 'deliverypoints' );
-$saved = $order_id ? (string) wc_get_order( $order_id )->get_meta( WHOOPSTORE_CDEK_OFFICE_META ) : '';
-whoopstore_qa_check( 'список пунктов недоступен — заказ принят с кодом ПВЗ без адреса', 200 === $status && $saved === $pvz[0]['code'], trim( $status . ' ' . $message . ' ' . $saved ) );
-
-// СДЭК не отвечает вовсе: пропадает сам тариф до ПВЗ. Оформление отклоняется
-// с просьбой выбрать способ доставки (I3), а не с чужой ошибкой адреса.
-list( $status, $message ) = whoopstore_qa_pvz_attempt( $product->get_id(), $pvz[0]['code'], true, true );
-whoopstore_qa_check( 'СДЭК не отвечает — отказ «выберите способ доставки»', 400 === $status && false !== mb_stripos( $message, 'способ доставки' ), $status . ' ' . $message );
 
 echo "\nИтого: $whoopstore_qa_pass ok, $whoopstore_qa_fail FAIL\n";
 exit( $whoopstore_qa_fail ? 1 : 0 );
