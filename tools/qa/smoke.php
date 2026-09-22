@@ -267,14 +267,74 @@ function whoopstore_qa_internal_path( $href, $origin ) {
 	return preg_match( '/\.(css|js|png|jpe?g|webp|avif|gif|svg|ico|woff2?|ttf|eot|mp4|webm)(\?|$)/i', $href ) ? '' : $href;
 }
 
+/**
+ * Пункты меню, подсвеченные как текущий раздел (inc/navigation.php).
+ *
+ * @param string $html  Разметка страницы.
+ * @param string $place site-header | site-footer.
+ * @return string[] Названия пунктов.
+ */
+function whoopstore_qa_active_nav( $html, $place ) {
+	preg_match_all( '#<p class="is-active ' . preg_quote( $place, '#' ) . '__nav-item[^>]*>(.*?)</p>#s', $html, $items );
+
+	return array_map( function ( $item ) {
+		return trim( wp_strip_all_tags( $item ) );
+	}, $items[1] );
+}
+
+/**
+ * Какой пункт меню должен гореть на странице.
+ *
+ * У страниц товаров пункт зависит от категории товара, поэтому там проверяем
+ * не название, а то, что подсвечен ровно один пункт и в шапке, и в подвале
+ * (значение '*'). Пустая строка — не должно гореть ничего.
+ *
+ * @param string $label Название страницы из whoopstore_qa_urls().
+ * @return string
+ */
+function whoopstore_qa_expected_nav( $label ) {
+	return [
+		'Главная'             => 'Whoop 5.0',
+		'Ремешки 5.0'         => 'Ремешки',
+		'Ремешки MG'          => 'Ремешки',
+		'Подписки'            => 'Подписки',
+		'Товар (простой)'     => '*',
+		'Товар (вариативный)' => '*',
+	][ $label ] ?? '';
+}
+
 $home     = home_url( '/' );
 $origin   = untrailingslashit( $home );
 $missing  = [];
 $checked  = 0;
 $internal = [];
+$nav      = [];
 
 foreach ( $files as $file => $page ) {
 	$html = (string) file_get_contents( $file );
+
+	$header   = whoopstore_qa_active_nav( $html, 'site-header' );
+	$footer   = whoopstore_qa_active_nav( $html, 'site-footer' );
+	$expected = whoopstore_qa_expected_nav( $page );
+	$actual   = $header ? implode( ', ', $header ) : '—';
+
+	if ( '*' === $expected ) {
+		$ok = 1 === count( $header ) && $header === $footer;
+	} else {
+		$ok = ( '' === $expected ? [] : [ $expected ] ) === $header && $header === $footer;
+	}
+
+	$nav[ $page ] = [ 'actual' => $actual, 'ok' => $ok ];
+
+	if ( ! $ok ) {
+		$problems[] = sprintf(
+			'меню: на странице «%s» подсвечено «%s» в шапке и «%s» в подвале, ожидалось «%s»',
+			$page,
+			$actual,
+			$footer ? implode( ', ', $footer ) : '—',
+			'*' === $expected ? 'по одному пункту' : ( '' === $expected ? '—' : $expected )
+		);
+	}
 
 	if ( $links && preg_match_all( '/<a[^>]*\shref=["\']([^"\']+)["\']/i', $html, $anchors ) ) {
 		foreach ( $anchors[1] as $anchor ) {
@@ -318,6 +378,12 @@ foreach ( $files as $file => $page ) {
 			$missing[ $path ][ $page ] = true;
 		}
 	}
+}
+
+echo "\nПодсвеченный пункт меню (шапка и подвал совпадают):\n";
+
+foreach ( $nav as $page => $state ) {
+	printf( "  %s %s %s\n", $state['ok'] ? ' ' : '✗', whoopstore_qa_pad( $page, 21 ), $state['actual'] );
 }
 
 printf( "\nСсылок на локальную статику проверено: %d\n", $checked );
