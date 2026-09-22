@@ -182,6 +182,36 @@ foreach ( whoopstore_qa_admin_screens() as $label => $screen ) {
 	$files[] = $file;
 }
 
+// ---------------------------------------------------------------------------
+// Права заказчика: сохранение содержимого не портит разметку
+// ---------------------------------------------------------------------------
+
+// Заказчик работает под ролью «Менеджер магазина», у неё нет unfiltered_html,
+// поэтому всё, что он сохраняет, проходит через kses. Если kses вырезает из
+// разметки теги, она сломается при первом же сохранении — это уже случалось с
+// <picture> в паттернах (mu-plugins/whoopstore-site/content.php).
+$kses_broken = [];
+
+$kses_posts = get_posts( [ 'post_type' => [ 'wp_block', 'page' ], 'post_status' => 'publish', 'numberposts' => -1 ] );
+
+foreach ( $kses_posts as $post ) {
+	// Сущности kses раскодирует, а кавычки в inline-стиле переэкранирует —
+	// на разметку это не влияет, поэтому сравниваем декодированные строки:
+	// интересует только то, что kses вырезал.
+	$before = html_entity_decode( $post->post_content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$after  = html_entity_decode( wp_kses_post( $post->post_content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+	if ( $before !== $after ) {
+		$kses_broken[] = sprintf( '%s %d «%s»', $post->post_type, $post->ID, $post->post_title );
+	}
+}
+
+printf( "\nСохранение содержимого менеджером магазина: проверено %d, портится %d\n", count( $kses_posts ), count( $kses_broken ) );
+
+foreach ( $kses_broken as $broken ) {
+	$problems[] = 'разметку испортит сохранение: ' . $broken;
+}
+
 if ( ! $keep ) {
 	array_map( 'unlink', $files );
 	@rmdir( $out );
