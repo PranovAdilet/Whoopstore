@@ -4116,6 +4116,18 @@ p.contact-block__legal {
 	margin: 30px 0 0;
 }
 
+/* ---------- Страницы без собственного шаблона ---------- */
+
+/* Политика конфиденциальности и личный кабинет выводятся общим
+   templates/index.html: заголовок и содержимое лежат прямо в <main>. Боковых
+   отступов у него нет (в theme.json не задан root padding, поэтому
+   --wp--style--root--padding-* = 0), и на узком экране текст упирался в край.
+   Остальные страницы сюда не попадают: у них свои шаблоны и свои секции. */
+.wp-site-blocks main > .wp-block-post-title,
+.wp-site-blocks main > .wp-block-post-content {
+	padding-inline: 20px;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 781px) {
