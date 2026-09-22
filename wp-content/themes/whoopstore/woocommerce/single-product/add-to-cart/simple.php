@@ -18,7 +18,7 @@
  *
  * @see https://woocommerce.com/document/template-structure/
  * @package Whoopstore
- * @version 7.0.1
+ * @version 10.2.0
  */
 
 defined( 'ABSPATH' ) || exit;

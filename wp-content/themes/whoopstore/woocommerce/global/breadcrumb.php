@@ -16,6 +16,7 @@
  * 14px desktop / 13px mobile.
  *
  * @package Whoopstore
+ * @version 2.3.0
  */
 
 defined( 'ABSPATH' ) || exit;

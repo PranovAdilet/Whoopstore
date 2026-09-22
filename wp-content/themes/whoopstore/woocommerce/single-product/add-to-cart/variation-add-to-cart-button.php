@@ -22,6 +22,7 @@
  * на них могут висеть интеграции.
  *
  * @package Whoopstore
+ * @version 10.5.2
  */
 
 defined( 'ABSPATH' ) || exit;

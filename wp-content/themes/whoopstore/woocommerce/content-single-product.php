@@ -10,6 +10,7 @@
  *
  * @see inc/woocommerce/single-product.php — какие стандартные хуки сняты и почему.
  * @package Whoopstore
+ * @version 3.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
