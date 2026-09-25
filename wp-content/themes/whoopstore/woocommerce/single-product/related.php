@@ -34,13 +34,12 @@ if ( function_exists( 'wp_increase_content_media_count' ) ) {
 ?>
 <section class="related products related-carousel">
 
-	<div class="related-carousel__stage">
+	<?php /* Заголовок — в обычном потоке секции, слева в контентной колонке
+	        (уточнение заказчика 2026-09-25), а не над первой карточкой
+	        центрируемой ленты. */ ?>
+	<h2 class="card-heading related-carousel__title">Вам может понравиться</h2>
 
-		<?php /* Заголовок лежит внутри ряда карусели, а не рядом с ним: лента
-		        центрируется по экрану, и заголовок должен ехать вместе с ней,
-		        оставаясь ровно над первой карточкой (как в макете, node
-		        30:186/30:211). Раскладку задаёт grid — см. .related-carousel__stage. */ ?>
-		<h2 class="card-heading related-carousel__title">Вам может понравиться</h2>
+	<div class="related-carousel__stage">
 
 		<div class="related-carousel__nav">
 			<button type="button" class="carousel-arrow carousel-arrow--prev related-carousel__arrow" aria-label="Предыдущие товары"></button>

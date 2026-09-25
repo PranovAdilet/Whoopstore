@@ -407,8 +407,7 @@ table.variations.variations--visually-replaced {
 	margin-top: var(--wp--custom--section-gap--default, 140px);
 }
 
-/* Ряд карусели на desktop: заголовок над первой карточкой, под ним
-   [стрелка] [лента] [стрелка] — одной центрированной сеткой во всю ширину
+/* Ряд карусели на desktop: [стрелка] [лента] [стрелка] — одной центрированной сеткой во всю ширину
    экрана (уточнение заказчика 2026-09-11).
 
    Зачем полная ширина: в Figma нарисованы ровно три карточки
@@ -417,15 +416,16 @@ table.variations.variations--visually-replaced {
    края страницы, а за края САМОЙ ленты: когда карточек мало и они не
    занимают экран, весь ряд центрируется вместе со стрелками и заголовком;
    когда много — лента разворачивается на доступную ширину и прокручивается.
+   Заголовок в этот ряд не входит: он стоит слева в контентной колонке
+   (уточнение заказчика 2026-09-25).
 
    Приём "выйти из центрированного родителя на всю ширину экрана"
    (left:50% + 100vw + margin-left:-50vw) — тот же, что у .faq и
    .balance-banner в theme.css. Боковой паддинг 40px — общая контентная
    сетка, чтобы карточки не липли к краю экрана.
 
-   Сетка, а не flex: колонок ровно три (стрелка / лента / стрелка), и
-   заголовку нужно попасть в строку выше ровно над колонкой ленты —
-   во flex это выражается только лишней обёрткой. justify-content:center
+   Сетка, а не flex: колонок ровно три (стрелка / лента / стрелка), а
+   стрелкам нужен отрицательный margin на край ленты. justify-content:center
    центрирует всю тройку колонок, когда они уже доступной ширины.
    minmax(0, auto) у средней колонки разрешает ленте сжиматься ниже своего
    содержимого — иначе она бы всегда была шириной во все карточки. */
@@ -438,15 +438,12 @@ table.variations.variations--visually-replaced {
 	grid-template-columns: auto minmax(0, auto) auto;
 	justify-content: center;
 	align-items: center;
-	row-gap: 30px;
 	padding-inline: 40px;
 }
 
+/* Заголовок → карточки: 30px, как в макете. */
 .related-carousel__title {
-	grid-column: 2;
-	grid-row: 1;
-	justify-self: start;
-	margin: 0;
+	margin: 0 0 30px;
 }
 
 /* display:contents убирает обёртку из раскладки, чтобы обе кнопки стали
@@ -459,7 +456,7 @@ table.variations.variations--visually-replaced {
 /* Отрицательный margin сажает стрелку центром ровно на край ленты — как в
    макете: стрелка 26…53 при первой карточке от 40 (node 30:240/30:243). */
 .related-carousel__arrow {
-	grid-row: 2;
+	grid-row: 1;
 	z-index: 1;
 }
 
@@ -480,7 +477,7 @@ table.variations.variations--visually-replaced {
    scrollbar скрыт: в макете его нет, прокрутка — стрелками и свайпом. */
 .related-carousel__track {
 	grid-column: 2;
-	grid-row: 2;
+	grid-row: 1;
 	min-width: 0;
 	display: grid;
 	grid-auto-flow: column;
