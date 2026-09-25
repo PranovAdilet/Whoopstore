@@ -40,6 +40,95 @@ foreach ( whoopstore_shipping_methods_with_description() as $whoopstore_method_i
 	} );
 }
 
+/**
+ * Способы доставки, которым можно ограничить город.
+ *
+ * Самовывоза в списке нет намеренно: туда покупатель приезжает сам, и город
+ * доставки к нему отношения не имеет.
+ *
+ * @return string[]
+ */
+function whoopstore_shipping_methods_with_city_limit() {
+	return [ 'flat_rate', 'free_shipping' ];
+}
+
+foreach ( whoopstore_shipping_methods_with_city_limit() as $whoopstore_method_id ) {
+	add_filter( "woocommerce_shipping_instance_form_fields_{$whoopstore_method_id}", function ( $fields ) {
+		$fields['whoopstore_moscow_only'] = [
+			'title'       => 'Только Москва',
+			'type'        => 'checkbox',
+			'label'       => 'Показывать способ, только когда доставка в Москву',
+			'default'     => 'no',
+			'description' => 'Пока город не указан, способ показывается всем: скрывать его до заполнения адреса значило бы прятать доставку в пустой корзине.',
+		];
+
+		return $fields;
+	} );
+}
+
+/**
+ * Город доставки — Москва?
+ *
+ * Сравнение по названию города, а не по индексу: индекс у Москвы занимает
+ * несколько несмежных диапазонов (101000–135999, Зеленоград, Новая Москва
+ * вперемешку с областными), и ошибиться там проще, чем в названии. Название
+ * приводится к общему виду: регистр, «ё», приставки «г.»/«город», лишние
+ * запятые и пробелы.
+ *
+ * Пустой город — не повод скрывать способ: адрес ещё не заполнен.
+ *
+ * @param array $destination Адрес доставки из пакета WooCommerce.
+ * @return bool
+ */
+function whoopstore_destination_is_moscow( $destination ) {
+	$city = isset( $destination['city'] ) ? (string) $destination['city'] : '';
+	$city = mb_strtolower( trim( $city ), 'UTF-8' );
+
+	if ( '' === $city ) {
+		return true;
+	}
+
+	$city = str_replace( 'ё', 'е', $city );
+	$city = preg_replace( '/(^|\s)(г|гор|город)\.?(\s|$)/u', ' ', $city );
+	$city = trim( preg_replace( '/[\s,\.]+/u', ' ', $city ) );
+
+	return in_array( $city, [ 'москва', 'moscow' ], true );
+}
+
+/**
+ * Способ с ограничением по городу не предлагается за пределами Москвы.
+ *
+ * Решение заказчика 2026-09-25: «Экспресс доставка» — день в день по Москве,
+ * в других городах её быть не должно. Сделано настройкой способа, а не
+ * проверкой его id в коде: способов доставки может стать больше, а правило
+ * должно оставаться редактируемым из админки.
+ *
+ * Зоной доставки это не решается: зоны WooCommerce различают страны, регионы
+ * и индексы, а у России списка регионов в WooCommerce нет — остались бы
+ * только индексы (см. выше, почему они ненадёжны).
+ */
+add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
+	$destination_is_moscow = whoopstore_destination_is_moscow( isset( $package['destination'] ) ? (array) $package['destination'] : [] );
+
+	if ( $destination_is_moscow ) {
+		return $rates;
+	}
+
+	foreach ( $rates as $key => $rate ) {
+		if ( ! in_array( $rate->get_method_id(), whoopstore_shipping_methods_with_city_limit(), true ) ) {
+			continue;
+		}
+
+		$method = WC_Shipping_Zones::get_shipping_method( $rate->get_instance_id() );
+
+		if ( $method && 'yes' === $method->get_option( 'whoopstore_moscow_only' ) ) {
+			unset( $rates[ $key ] );
+		}
+	}
+
+	return $rates;
+}, 10, 2 );
+
 add_filter( 'woocommerce_package_rates', function ( $rates ) {
 	foreach ( $rates as $rate ) {
 		if ( ! in_array( $rate->get_method_id(), whoopstore_shipping_methods_with_description(), true ) ) {

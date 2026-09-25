@@ -20,8 +20,9 @@
  *  - выбранный способ доставки не подменяется другим, когда пропадает
  *    (город неизвестен СДЭК, ошибка API), а оформление без способа
  *    отклоняется (аудит 2026-09-18, I3);
- *  - «Экспресс» и «Самовывоз» сохраняются при смене города, новая корзина
- *    получает способ по умолчанию;
+ *  - «Экспресс» предлагается только в Москве (решение заказчика 2026-09-25),
+ *    «Самовывоз» сохраняется при смене города, новая корзина получает способ
+ *    по умолчанию;
  *  - код ПВЗ сверяется со списком пунктов города (I4).
  *
  * Запуск:
@@ -293,27 +294,63 @@ WC_Cache_Helper::get_transient_version( 'shipping', true );
 $cart = whoopstore_qa_cart();
 whoopstore_qa_check( 'способ вернулся — вернулся и выбор', whoopstore_qa_selected( $cart ) === $express, whoopstore_qa_selected( $cart ) );
 
-echo "\n== «Экспресс» и «Самовывоз» при смене города\n";
+echo "\n== «Экспресс» — только Москва (решение заказчика 2026-09-25)\n";
+
+// Способ ограничен настройкой whoopstore_moscow_only у способа доставки
+// (mu-plugins/whoopstore-commerce/shipping.php). Город сверяется по названию,
+// поэтому проверяются и написания, которые набирает живой покупатель.
+whoopstore_qa_fresh_cart( $product->get_id() );
+$cart = whoopstore_qa_cart();
+whoopstore_qa_check( 'адрес не заполнен — «Экспресс» предлагается', '' !== whoopstore_qa_rate( $cart, 'flat_rate' ), whoopstore_qa_line( $cart ) );
+
+foreach ( [ 'Москва', 'г. Москва', 'МОСКВА' ] as $whoopstore_qa_moscow ) {
+	$cart = whoopstore_qa_address( $whoopstore_qa_moscow, '101000' );
+	whoopstore_qa_check( '«' . $whoopstore_qa_moscow . '» — «Экспресс» есть', '' !== whoopstore_qa_rate( $cart, 'flat_rate' ), whoopstore_qa_line( $cart ) );
+}
+
+foreach ( [ 'Санкт-Петербург' => '190000', 'Новосибирск' => '630000' ] as $whoopstore_qa_city => $whoopstore_qa_zip ) {
+	$cart = whoopstore_qa_address( $whoopstore_qa_city, $whoopstore_qa_zip );
+	whoopstore_qa_check( $whoopstore_qa_city . ' — «Экспресса» нет', '' === whoopstore_qa_rate( $cart, 'flat_rate' ), whoopstore_qa_line( $cart ) );
+}
+
+// Уехал из Москвы с уже выбранным «Экспрессом»: способ пропадает, но другой
+// молча не подставляется — та же защита, что у тарифов СДЭК (I3).
 whoopstore_qa_fresh_cart( $product->get_id() );
 $cart = whoopstore_qa_address( 'Москва', '101000' );
 whoopstore_qa_select( whoopstore_qa_rate( $cart, 'flat_rate' ) );
-$cart = whoopstore_qa_address( 'Абвгдейкаград', '999999' );
-whoopstore_qa_check( '«Экспресс» сохранён (город без СДЭК)', 0 === strpos( whoopstore_qa_selected( $cart ), 'flat_rate' ), whoopstore_qa_selected( $cart ) );
 $cart = whoopstore_qa_address( 'Новосибирск', '630000' );
-whoopstore_qa_check( '«Экспресс» сохранён (город с СДЭК)', 0 === strpos( whoopstore_qa_selected( $cart ), 'flat_rate' ), whoopstore_qa_selected( $cart ) );
+whoopstore_qa_check( 'сменил город — выбор «Экспресса» не подменён', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_selected( $cart ) );
+$cart = whoopstore_qa_address( 'Москва', '101000' );
+whoopstore_qa_check( 'вернулся в Москву — вернулся и выбор', 0 === strpos( whoopstore_qa_selected( $cart ), 'flat_rate' ), whoopstore_qa_selected( $cart ) );
+
+echo "\n== «Самовывоз» при смене города\n";
 whoopstore_qa_fresh_cart( $product->get_id() );
 whoopstore_qa_select( whoopstore_qa_rate( whoopstore_qa_cart(), 'local_pickup' ) );
 $cart = whoopstore_qa_address( 'Москва', '101000' );
 whoopstore_qa_check( '«Самовывоз» сохранён', 0 === strpos( whoopstore_qa_selected( $cart ), 'local_pickup' ), whoopstore_qa_selected( $cart ) );
 
 echo "\n== Пропавший выбор не переходит в новую корзину\n";
+// Выбирается «Экспресс», а НЕ курьер СДЭК: в Москве курьер стоит первым в
+// наборе, то есть он же и способ по умолчанию — на нём проверка «вернулся
+// запомненный или подставился обычный по умолчанию» ничего бы не различила.
 whoopstore_qa_fresh_cart( $product->get_id() );
 $cart = whoopstore_qa_address( 'Москва', '101000' );
-whoopstore_qa_select( whoopstore_qa_rate( $cart, 'official_cdek' ) );
-whoopstore_qa_address( 'Абвгдейкаград', '999999' );
+$whoopstore_qa_express = whoopstore_qa_rate( $cart, 'flat_rate' );
+whoopstore_qa_select( $whoopstore_qa_express );
+
+// Город без тарифов СДЭК и без «Экспресса»: выбранный способ пропадает и
+// запоминается в сессии.
+$cart = whoopstore_qa_address( 'Абвгдейкаград', '999999' );
+whoopstore_qa_check( 'остался только самовывоз — он не выбирается сам', '' === whoopstore_qa_selected( $cart ), whoopstore_qa_line( $cart ) );
+
 whoopstore_qa_api( 'DELETE', 'cart/items' );
 whoopstore_qa_api( 'POST', 'cart/add-item', [ 'id' => $product->get_id(), 'quantity' => 1 ] );
-whoopstore_qa_check( 'новая корзина снова со способом по умолчанию', '' !== whoopstore_qa_selected( whoopstore_qa_cart() ), whoopstore_qa_selected( whoopstore_qa_cart() ) );
+$cart = whoopstore_qa_address( 'Москва', '101000' );
+whoopstore_qa_check(
+	'новая корзина — способ по умолчанию, а не запомненный «Экспресс»',
+	0 === strpos( whoopstore_qa_selected( $cart ), 'official_cdek' ),
+	whoopstore_qa_selected( $cart ) . ' (пропадал ' . $whoopstore_qa_express . ')'
+);
 
 if ( $cdek_ready ) {
 	echo "\n== I4: код ПВЗ при оформлении\n";
