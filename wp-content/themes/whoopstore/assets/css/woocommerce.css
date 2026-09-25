@@ -143,7 +143,7 @@
    пересчитываем под бокс 30px вместо штатных 36px; своей иконки-ассета
    не заводим. */
 .woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger {
-	left: calc(120px + 12px + 12px);
+	left: 12px;
 	right: auto;
 	top: 12px;
 	width: 30px;
@@ -151,6 +151,17 @@
 	box-sizing: border-box;
 	background: var(--wp--preset--color--surface-translucent);
 	border-radius: 6px;
+}
+
+/* Колонка миниатюр есть только у товара с несколькими фото — тогда
+   большое фото сдвинуто на 120 + 12 и лупа вместе с ним. У товара с одним
+   фото (flexslider миниатюр не строит) фото начинается от края галереи,
+   и лупа остаётся в 12px от него. На mobile миниатюры скрыты, фото от
+   края экрана — сдвиг не нужен. */
+@media (min-width: 782px) {
+	.woocommerce .product-page div.product div.images:has(.flex-control-thumbs) .woocommerce-product-gallery__trigger {
+		left: calc(120px + 12px + 12px);
+	}
 }
 
 .woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger::before {
@@ -1380,11 +1391,6 @@ body.has-cart-drawer {
 	/* Колонки миниатюр на mobile в макете нет — переключение свайпом и точками. */
 	.woocommerce .product-page div.product div.images .flex-control-thumbs {
 		display: none;
-	}
-
-	/* Лупа — те же 12px от угла фото, но фото теперь от края экрана. */
-	.woocommerce .product-page div.product div.images .woocommerce-product-gallery__trigger {
-		left: 12px;
 	}
 
 	.product-gallery__dots {
