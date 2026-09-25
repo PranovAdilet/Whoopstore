@@ -80,8 +80,8 @@
 
 			<!-- wp:buttons -->
 			<div class="wp-block-buttons">
-				<!-- wp:button -->
-				<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Подписаться</a></div>
+				<!-- wp:button {"linkTarget":"_blank","rel":"noopener"} -->
+				<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://t.me/whooppstore" target="_blank" rel="noopener">Подписаться</a></div>
 				<!-- /wp:button -->
 			</div>
 			<!-- /wp:buttons -->

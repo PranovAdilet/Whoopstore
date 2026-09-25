@@ -100,9 +100,15 @@
 			<p class="contact-block__legal">ИП Гуменюк Сергей Александрович ОГРН/ОГРНИП 326508100066255 ИНН 500407393045</p>
 			<!-- /wp:paragraph -->
 
-			<div class="contact-block__messengers" aria-hidden="true">
-				<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/max-logo.svg' ) ); ?>" width="30" height="30" alt="" loading="lazy" />
-				<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/telegram-logo.svg' ) ); ?>" width="30" height="30" alt="" loading="lazy" />
+			<?php /* Правка 2026-09-25: заказчик прислал адрес Telegram-канала, иконка
+			        стала ссылкой. Скрывать её от скринридеров теперь нельзя (ссылка
+			        получает фокус), поэтому aria-hidden снят с контейнера и оставлен
+			        только у иконки MAX — у неё адреса всё ещё нет. */ ?>
+			<div class="contact-block__messengers">
+				<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/max-logo.svg' ) ); ?>" width="30" height="30" alt="" aria-hidden="true" loading="lazy" />
+				<a class="contact-block__messenger-link" href="https://t.me/whooppstore" target="_blank" rel="noopener">
+					<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/telegram-logo.svg' ) ); ?>" width="30" height="30" alt="Телеграм-канал Whoopstore" loading="lazy" />
+				</a>
 			</div>
 		</div>
 	</div>
