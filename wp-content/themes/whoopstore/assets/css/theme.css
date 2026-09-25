@@ -4134,9 +4134,15 @@ p.contact-block__legal {
    templates/index.html: заголовок и содержимое лежат прямо в <main>. Боковых
    отступов у него нет (в theme.json не задан root padding, поэтому
    --wp--style--root--padding-* = 0), и на узком экране текст упирался в край.
-   Остальные страницы сюда не попадают: у них свои шаблоны и свои секции. */
-.wp-site-blocks main > .wp-block-post-title,
-.wp-site-blocks main > .wp-block-post-content {
+   Остальные страницы сюда не попадают: у них свои шаблоны и свои секции.
+   Правка 2026-09-25: :not(.page-canvas) обязателен — в шаблонах страниц
+   ремешков (page-straps-50/-mg.html) post-content тоже прямой ребёнок
+   <main>, и без исключения каталог сужался на 40px (1120 → 1080), а три
+   карточки 360px с зазором 16 требуют 1112 — в ряду оставалось две. Все
+   собственные шаблоны темы ставят на <main> .page-canvas (Главная —
+   .front-page, но post-content там нет), у index.html класса нет. */
+.wp-site-blocks main:not(.page-canvas) > .wp-block-post-title,
+.wp-site-blocks main:not(.page-canvas) > .wp-block-post-content {
 	padding-inline: 20px;
 }
 
