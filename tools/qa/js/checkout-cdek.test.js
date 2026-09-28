@@ -10,8 +10,10 @@ const html = fs.readFileSync(htmlFile, 'utf8').replace(/<script[\s\S]*?<\/script
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ok = (c, m) => { console.log((c ? '  ✓ ' : '  ✗ ') + m); if (!c) process.exitCode = 1; };
 const POINTS = [
-  { code: 'SPB55', name: 'SPB55, Санкт-Петербург, пр-т 2-й Муринский', type: 'PVZ', location: { address: 'пр-т 2-й Муринский, 49' } },
-  { code: 'SPB12', name: 'SPB12, Санкт-Петербург, Невский', type: 'PVZ', location: { address: 'Невский пр-т, 100' } },
+  // Координаты — как их отдаёт СДЭК: по ним карта центрируется без геокодера
+  // Яндекса (для него нужен отдельный ключ, см. pointsCenter в cart-drawer.js).
+  { code: 'SPB55', name: 'SPB55, Санкт-Петербург, пр-т 2-й Муринский', type: 'PVZ', location: { address: 'пр-т 2-й Муринский, 49', longitude: 30.344, latitude: 60.012 } },
+  { code: 'SPB12', name: 'SPB12, Санкт-Петербург, Невский', type: 'PVZ', location: { address: 'Невский пр-т, 100', longitude: 30.356, latitude: 59.932 } },
   { code: 'SPB900', name: 'Постамат', type: 'POSTAMAT', location: { address: 'ул. Постаматная, 1' } },
 ];
 function boot() {
@@ -91,7 +93,8 @@ function boot() {
   ok(/○ Доставка курьером — 390 ₽ · СДЭК/.test(t.tiles()[0]) && /○ ПВЗ CDEK — 222 ₽ · Выберите/.test(t.tiles()[1]) && /● Экспресс/.test(t.tiles()[2]), 'у СДЭК появились цены, «Экспресс» остался выбранным');
   t.srv.log.length = 0; t.pick('ПВЗ CDEK'); await sleep(300);
   ok(t.srv.log.includes('POST cart/select-shipping-rate official_cdek:136'), 'выбран тариф 136');
-  ok(t.widget.opens === 1 && t.widget.params.officesRaw.length === 2 && t.widget.params.officesRaw.every(p => p.type === 'PVZ') && t.widget.params.defaultLocation === 'Санкт-Петербург' && t.widget.params.popup === true && t.widget.params.hideDeliveryOptions.door === true && !('apiKey' in t.widget.params), 'карта открылась: 2 ПВЗ без постамата, город, popup, без двери, ключ по умолчанию');
+  const center = t.widget.params.defaultLocation;
+  ok(t.widget.opens === 1 && t.widget.params.officesRaw.length === 2 && t.widget.params.officesRaw.every(p => p.type === 'PVZ') && Array.isArray(center) && center[0] === 30.344 && center[1] === 60.012 && t.widget.params.popup === true && t.widget.params.hideDeliveryOptions.door === true && !('apiKey' in t.widget.params), 'карта открылась: 2 ПВЗ без постамата, центр координатами [долгота, широта] (не строкой — иначе виджет пойдёт в геокодер), popup, без двери, ключ по умолчанию: ' + JSON.stringify(center));
   ok(t.shown() === 'city*,postcode', 'для ПВЗ — только город (обязателен) и индекс: ' + t.shown());
   ok(t.totals().ship === '₽ 222,00' && t.totals().term === '1-2 дн.', 'итоги: доставка ' + t.totals().ship + ', срок ' + t.totals().term + ', итого ' + t.totals().grand);
   t.widget.params.onChoose('office', {}, { code: 'SPB55', name: 'SPB55, Санкт-Петербург, пр-т 2-й Муринский' }); await sleep(50);

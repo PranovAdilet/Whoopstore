@@ -480,6 +480,36 @@
 	}
 
 	/**
+	 * Точка, на которую центрируется карта, — координаты первого пункта города.
+	 *
+	 * Виджет умеет принимать defaultLocation/updateLocation и строкой, и парой
+	 * координат. Строку он отправляет в HTTP-геокодер Яндекса, а это ОТДЕЛЬНЫЙ
+	 * платный ключ: с ключом JavaScript API геокодер отвечает 403, и виджет
+	 * падает на инициализации, не показав карту вовсе («[CDEK] Unable to
+	 * geocode default location», найдено в браузере 2026-09-28). Координаты
+	 * же геокодировать не надо — они уже есть в каждом пункте выдачи, которые
+	 * нам и так отдаёт СДЭК, поэтому лишний ключ не нужен.
+	 *
+	 * Порядок — [долгота, широта]: виджет ждёт формат Яндекса (pos = "lon lat").
+	 * Точный центр роли не играет — сразу после установки виджет сам
+	 * подгоняет границы под все пункты (fixBounds).
+	 *
+	 * @param {Array} points Пункты выдачи города.
+	 * @return {Array|null} Координаты или null, если их нет.
+	 */
+	function pointsCenter( points ) {
+		for ( var i = 0; i < points.length; i++ ) {
+			var location = points[ i ] && points[ i ].location;
+
+			if ( location && isFinite( location.longitude ) && isFinite( location.latitude ) ) {
+				return [ Number( location.longitude ), Number( location.latitude ) ];
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Карта пунктов выдачи — виджет СДЭК во всплывающем окне поверх формы, с
 	 * теми же параметрами, что у плагина в штатном оформлении
 	 * (build/cdek-checkout-map.js): пункты — из корзины, доставка до двери
@@ -510,7 +540,7 @@
 					var params = {
 						popup: true,
 						lang: cdek.widget.lang,
-						defaultLocation: city,
+						defaultLocation: pointsCenter( points ) || city,
 						officesRaw: points,
 						hideDeliveryOptions: { door: true },
 						onChoose: function ( type, tariff, office ) {
@@ -529,7 +559,7 @@
 					}
 
 					mapWidget.updateOfficesRaw( points );
-					mapWidget.updateLocation( city );
+					mapWidget.updateLocation( pointsCenter( points ) || city );
 				}
 
 				mapCity = city;
