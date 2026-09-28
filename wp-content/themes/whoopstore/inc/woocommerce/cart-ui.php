@@ -40,6 +40,54 @@ function whoopstore_cart_stepper() {
 add_action( 'woocommerce_after_add_to_cart_button', 'whoopstore_cart_stepper' );
 
 /**
+ * Кнопка корзины в шапке: начальное состояние печатается сервером.
+ *
+ * В макете кнопки нет, пока корзина пуста (см. assets/js/cart.js), поэтому в
+ * parts/header.html она лежит с атрибутом hidden, а показывает её скрипт —
+ * после ответа Store API. Пока ответ не пришёл, правый блок шапки уже, чем
+ * будет: кнопка это 40px плюс 12px зазора. Меню центрируется между логотипом
+ * и этим блоком (.site-header__nav{flex:1;justify-content:center}), поэтому в
+ * момент появления кнопки все пункты меню сдвигаются примерно на 26px — на
+ * каждой навигации, пока в корзине что-то есть (жалоба 2026-09-28
+ * «хедер странно прыгает при переходе на страницы»).
+ *
+ * Чинится не стилями, а состоянием: WooCommerce поднимает корзину на любом
+ * фронтовом запросе (`wc_load_cart()` в WC()->init), значит количество
+ * товаров известно уже при рендере. Если оно больше нуля — печатаем кнопку
+ * сразу видимой и с настоящим счётчиком, и двигаться нечему. Пустая корзина
+ * отдаётся как прежде: макет в этом состоянии кнопки не предусматривает.
+ *
+ * Скрипт после ответа Store API выставляет то же самое, поэтому расхождение
+ * возможно только если страница отдана из кэша чужой сессии — тогда счётчик
+ * поправится, как и раньше, сразу после загрузки.
+ *
+ * @param string $content Готовая разметка блока.
+ * @param array  $block   Блок.
+ * @return string
+ */
+add_filter( 'render_block', function ( $content, $block ) {
+	if ( 'core/html' !== ( isset( $block['blockName'] ) ? $block['blockName'] : '' )
+		|| false === strpos( $content, 'site-header__cart' ) ) {
+		return $content;
+	}
+
+	$count = ( WC()->cart instanceof WC_Cart ) ? WC()->cart->get_cart_contents_count() : 0;
+
+	if ( $count < 1 ) {
+		return $content;
+	}
+
+	$content = preg_replace( '~(<button[^>]*class="site-header__cart"[^>]*?)\s+hidden(\s*>)~u', '$1$2', $content, 1 );
+
+	return preg_replace(
+		'~(<span class="site-header__cart-badge"[^>]*>)[^<]*(</span>)~u',
+		'${1}' . esc_html( $count ) . '$2',
+		$content,
+		1
+	);
+}, 10, 2 );
+
+/**
  * Подключение скриптов и данных корзины.
  *
  * Скрипт нужен на каждой странице: кнопка-корзина в шапке и drawer —
