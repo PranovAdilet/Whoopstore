@@ -100,12 +100,14 @@
 			<p class="contact-block__legal">ИП Гуменюк Сергей Александрович ОГРН/ОГРНИП 326508100066255 ИНН 500407393045</p>
 			<!-- /wp:paragraph -->
 
-			<?php /* Правка 2026-09-25: заказчик прислал адрес Telegram-канала, иконка
-			        стала ссылкой. Скрывать её от скринридеров теперь нельзя (ссылка
-			        получает фокус), поэтому aria-hidden снят с контейнера и оставлен
-			        только у иконки MAX — у неё адреса всё ещё нет. */ ?>
+			<?php /* Правка 2026-09-25 (Telegram) и 2026-09-30 (MAX): заказчик прислал
+			        адреса, обе иконки стали ссылками. Скрывать их от скринридеров
+			        нельзя — ссылка получает фокус, — поэтому aria-hidden снят,
+			        а назначение каждой ссылки несёт alt картинки внутри. */ ?>
 			<div class="contact-block__messengers">
-				<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/max-logo.svg' ) ); ?>" width="30" height="30" alt="" aria-hidden="true" loading="lazy" />
+				<a class="contact-block__messenger-link" href="https://max.ru/u/f9LHodD0cOLfvmodkx5uYwC1o__5uB8sZoI1D5Fxxs39CNKkZrfX2_cHKYw" target="_blank" rel="noopener">
+					<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/max-logo.svg' ) ); ?>" width="30" height="30" alt="Whoopstore в мессенджере MAX" loading="lazy" />
+				</a>
 				<a class="contact-block__messenger-link" href="https://t.me/whooppstore" target="_blank" rel="noopener">
 					<img class="contact-block__messenger" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/telegram-logo.svg' ) ); ?>" width="30" height="30" alt="Телеграм-канал Whoopstore" loading="lazy" />
 				</a>
