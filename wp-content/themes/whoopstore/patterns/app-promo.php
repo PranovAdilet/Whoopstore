@@ -35,21 +35,30 @@
  *   (cp), сверен по md5 байт-в-байт. 30×30 PNG, RGBA с прозрачностью.
  */
 
+/*
+ * url пустой — адреса ещё нет (заказчик 2026-09-28: своего приложения у него
+ * нет, куда ведёт «Подключить» — не решено). Тогда кнопка печатается как
+ * <span>: выглядит как в макете, но ссылкой не притворяется — см.
+ * .btn--inactive в theme.css. Появится адрес — достаточно вписать его сюда.
+ */
 $whoopstore_apps = [
 	[
 		'name' => 'Приложение Whoop в AppStore',
 		'cta'  => 'Скачать',
 		'icon' => 'app-store.svg',
+		'url'  => '',
 	],
 	[
 		'name' => 'Приложение Whoop в Play Market',
 		'cta'  => 'Скачать',
 		'icon' => 'google-play.png',
+		'url'  => '',
 	],
 	[
 		'name' => 'Приложение для Whoop на русском',
 		'cta'  => 'Подключить',
 		'icon' => 'whoop-app-ru.png',
+		'url'  => '',
 	],
 ];
 ?>
@@ -70,7 +79,11 @@ $whoopstore_apps = [
 					<img src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/' . $app['icon'] ) ); ?>" alt="" width="30" height="30" loading="lazy" />
 				</div>
 				<p class="app-promo__card-title text-label"><?php echo esc_html( $app['name'] ); ?></p>
-				<a class="wp-block-button__link wp-element-button app-promo__button" href="#"><?php echo esc_html( $app['cta'] ); ?></a>
+				<?php if ( '' !== $app['url'] ) : ?>
+					<a class="wp-block-button__link wp-element-button app-promo__button" href="<?php echo esc_url( $app['url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $app['cta'] ); ?></a>
+				<?php else : ?>
+					<span class="wp-block-button__link wp-element-button app-promo__button btn--inactive"><?php echo esc_html( $app['cta'] ); ?></span>
+				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
 	</div>
