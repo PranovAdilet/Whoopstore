@@ -350,7 +350,6 @@ table.variations.variations--visually-replaced {
 	font-size: 12px;
 	line-height: 1.2;
 	cursor: pointer;
-	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* ---------- Кнопка "Добавить в корзину" ---------- */
@@ -728,7 +727,7 @@ table.variations.variations--visually-replaced {
 	line-height: 1.2;
 	opacity: 0;
 	transform: translateY(12px);
-	transition: opacity 0.2s ease, transform 0.2s ease;
+	transition: opacity var(--wp--custom--motion--base) var(--wp--custom--motion--ease), transform var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
 	pointer-events: none;
 }
 
@@ -771,7 +770,6 @@ table.variations.variations--visually-replaced {
 	font-size: var(--wp--preset--font-size--sm);
 	line-height: 1.2;
 	cursor: pointer;
-	transition: background-color 0.15s ease, filter 0.15s ease;
 }
 
 .cart-button--primary {
@@ -1366,6 +1364,69 @@ body.has-cart-drawer {
 	min-height: 64px;
 	font-weight: 500;
 	text-align: left;
+}
+
+/* ---------- Состояния и движение: корзина, чекаут, товар ---------- */
+
+/* Сверх макета (2026-10-09), см. раздел «Состояния и движение» в theme.css:
+   там токены, общий список переходов и ключевые кадры. Здесь — только
+   привязка их к компонентам этого файла.
+
+   Панели открываются снятием [hidden] (assets/js/cart-drawer.js), поэтому
+   появление — анимацией при первом рендере. Закрытие остаётся мгновенным:
+   для плавного пришлось бы откладывать [hidden] в скрипте корзины и
+   чекаута, а это уже правка поведения, не оформления. */
+.cart-overlay {
+	animation: whoopstore-fade-in var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
+}
+
+.cart-drawer {
+	animation: whoopstore-slide-in-right var(--wp--custom--motion--slow) var(--wp--custom--motion--ease);
+}
+
+/* Переключение «Корзина» → «Оформление заказа» внутри панели. */
+.cart-drawer__view {
+	animation: whoopstore-fade-in var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
+}
+
+.order-modal {
+	animation: whoopstore-fade-in var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
+}
+
+.order-modal__window {
+	animation: whoopstore-rise-in var(--wp--custom--motion--slow) var(--wp--custom--motion--ease);
+}
+
+/* Крестик закрытия (drawer и модалка). Кнопка «Продолжить покупки» тоже
+   .order-modal__close, но не .cart-drawer__close — её hover свой, от
+   .cart-button--primary. */
+.cart-drawer__close:hover {
+	opacity: 0.6;
+}
+
+.product-gallery__dot:not(.is-active):hover {
+	background: rgba(255, 255, 255, 0.6);
+}
+
+/* Поле чекаута: у самого <input> контур снят (подложка и есть поле), поэтому
+   фокус показывает подложка — тонкой тёмной обводкой внутрь, без сдвига
+   раскладки. */
+.checkout-field {
+	transition: box-shadow var(--wp--custom--motion--fast) var(--wp--custom--motion--ease);
+}
+
+.checkout-field:focus-within {
+	box-shadow: inset 0 0 0 1px var(--wp--preset--color--on-light-faint);
+}
+
+/* Аккордеоны товара: «+» превращается в «−» плавно, текст появляется тем же
+   кадром, что ответы FAQ. */
+.product-accordion__icon-v {
+	transition: opacity var(--wp--custom--motion--fast) var(--wp--custom--motion--ease);
+}
+
+.product-accordion__item[open] .product-accordion__body {
+	animation: whoopstore-reveal var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
 }
 
 @media (max-width: 781px) {

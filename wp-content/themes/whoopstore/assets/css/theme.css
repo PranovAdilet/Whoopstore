@@ -690,7 +690,6 @@ a {
 	border-radius: var(--wp--custom--radius--button);
 	border: none;
 	cursor: pointer;
-	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
 }
 
 /* Зазор между пилюлями в ряду — тоже общий: 10px desktop / 6px mobile
@@ -704,19 +703,8 @@ a {
 	gap: 10px;
 }
 
-/* Видимый фокус — для доступности, на любом варианте кнопки (в т.ч. на
-   стандартном .wp-element-button блока core/button). Предположение сверх
-   макета (в статичном Figma-кадре hover/focus не виден) — по просьбе
-   пользователя добавлено как стандартная практика, коммерческую логику
-   не меняет. */
-.wp-element-button:focus-visible,
-.btn--primary:focus-visible,
-.btn--dark:focus-visible,
-.btn--white:focus-visible,
-.btn--outline:focus-visible {
-	outline: 2px solid var(--wp--preset--color--accent);
-	outline-offset: 2px;
-}
+/* Видимый фокус и переходы — общие для всех интерактивных элементов, см.
+   раздел «Состояния и движение» ниже. */
 
 /* 1. Primary — фон/текст по умолчанию уже приходят из theme.json на любом
    .wp-element-button; .btn--primary дублирует ту же пару цветов только для
@@ -819,6 +807,168 @@ a {
 .btn--outline:hover,
 .toggle__option.is-active:hover {
 	background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Состояния и движение (общие для всего сайта) ---------- */
+
+/* Статичный кадр Figma не показывает hover/focus/active и переходы, поэтому
+   всё ниже — сверх макета, по просьбе пользователя (2026-10-09). Принцип:
+   вид каждого состояния покоя остаётся ровно макетным, меняется только то,
+   как элемент реагирует на курсор, нажатие и клавиатуру. Длительности и
+   кривая — токены theme.json (settings.custom.motion): быстрый 150 мс для
+   микровзаимодействий, базовый 250 мс для появления, медленный 400 мс для
+   панелей. Один список элементов — один источник перехода, включая
+   WC-классы из woocommerce.css (оба файла подключаются на всех страницах). */
+.wp-element-button,
+.btn--primary,
+.btn--dark,
+.btn--white,
+.btn--outline,
+.toggle__option,
+.device-grid__filter,
+.variation-swatches__option,
+.app-promo__button,
+.site-header__cart,
+.carousel-arrow,
+.straps-carousel--personalize .straps-carousel__arrow,
+.cart-button,
+.cart-stepper__button,
+.cart-drawer__clear,
+.cart-drawer__close,
+.product-gallery__dot {
+	transition-property: background-color, border-color, color, filter, opacity, transform;
+	transition-duration: var(--wp--custom--motion--fast);
+	transition-timing-function: var(--wp--custom--motion--ease);
+}
+
+/* Нажатие — лёгкое «вдавливание». Не у того, что нажать нельзя: кнопка без
+   адреса (.btn--inactive), недоступная стрелка ленты, кнопка WooCommerce
+   до выбора вариации (.disabled) и кнопка на время запроса. */
+.wp-element-button:active,
+.btn--primary:active,
+.btn--dark:active,
+.btn--white:active,
+.btn--outline:active,
+.toggle__option:active,
+.device-grid__filter:active,
+.variation-swatches__option:active,
+.app-promo__button:active,
+.site-header__cart:active,
+.carousel-arrow:active,
+.straps-carousel--personalize .straps-carousel__arrow:active,
+.cart-button:active,
+.cart-stepper__button:active {
+	transform: scale(0.97);
+}
+
+.btn--inactive:active,
+.wp-element-button.disabled:active,
+.carousel-arrow[disabled]:active,
+.straps-carousel--personalize .straps-carousel__arrow[disabled]:active,
+.cart-button:disabled:active {
+	transform: none;
+}
+
+/* Стрелки ленты — белые кнопки, hover тот же, что у стиля White выше. */
+.carousel-arrow:not([disabled]):hover,
+.straps-carousel--personalize .straps-carousel__arrow:not([disabled]):hover {
+	background: rgba(255, 255, 255, 0.85);
+}
+
+/* Видимый фокус с клавиатуры — у любого интерактивного элемента, а не
+   только у кнопок (раньше его не было у фильтров, вкладок, свотчей,
+   стрелок, бургера, ссылок меню и вопросов FAQ). :where() — нулевая
+   специфичность: собственные правила фокуса компонентов (плитки доставки
+   в чекауте, поле ввода) остаются в силе. На светлых панелях мятный
+   контур почти не виден на белом — там он тёмный. */
+:where(a, button, summary, select, [tabindex]:not([tabindex="-1"])):focus-visible {
+	outline: 2px solid var(--wp--preset--color--accent);
+	outline-offset: 2px;
+}
+
+:where(.card--light, .cart-drawer, .order-modal) :where(a, button, summary, select, [tabindex]:not([tabindex="-1"])):focus-visible {
+	outline-color: var(--wp--preset--color--on-light);
+}
+
+/* Ссылки навигации в шапке и подвале: приглушение под курсором. Только
+   <a> — пункты без адреса выводятся <span> и не реагируют. */
+.site-header__nav-item a,
+.site-footer__nav-item a,
+.site-footer__phone a,
+.site-footer__legal a {
+	transition: opacity var(--wp--custom--motion--fast) var(--wp--custom--motion--ease);
+}
+
+.site-header__nav-item a:hover,
+.site-footer__nav-item a:hover,
+.site-footer__phone a:hover,
+.site-footer__legal a:hover {
+	opacity: 0.7;
+}
+
+/* Бургер: полоски складываются в крестик плавно, а не скачком. */
+.site-header__burger span {
+	transition: transform var(--wp--custom--motion--base) var(--wp--custom--motion--ease), opacity var(--wp--custom--motion--fast) var(--wp--custom--motion--ease);
+}
+
+/* Вопросы FAQ: подсветка карточки под курсором и мягкое появление ответа.
+   Ответ появляется сдвигом и прозрачностью, не высотой — раскладка
+   (и фото рядом, см. 9a7935a) не дёргается. */
+.faq__item {
+	transition: background-color var(--wp--custom--motion--fast) var(--wp--custom--motion--ease);
+}
+
+.faq__item:hover {
+	/* Поверхность карточки чуть светлее — тем же приёмом «белый поверх»,
+	   что и hover тёмных кнопок, без нового цвета в палитре. */
+	background: color-mix(in srgb, var(--wp--preset--color--surface), #ffffff 4%);
+}
+
+.faq__item[open] > :not(summary) {
+	animation: whoopstore-reveal var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
+}
+
+/* Общие ключевые кадры появления. Анимация, а не transition: компоненты
+   показываются снятием [hidden] / display:none, а с display:none
+   transition не стартует, анимация же запускается при первом рендере. */
+@keyframes whoopstore-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+}
+
+@keyframes whoopstore-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes whoopstore-rise-in {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+}
+
+@keyframes whoopstore-slide-in-right {
+	from {
+		transform: translateX(100%);
+	}
+}
+
+/* prefers-reduced-motion: все переходы и анимации сайта — мгновенные.
+   Длительность почти нулевая, а не none: события transitionend и
+   конечное состояние анимаций сохраняются. Бегущая строка выключена
+   своим правилом в разделе .audience. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }
 
 /* ---------- Toggle "Whoop 5.0 / Whoop MG" ---------- */
@@ -3208,7 +3358,7 @@ a {
 
 .faq__chevron {
 	flex: 0 0 auto;
-	transition: transform 0.2s ease;
+	transition: transform var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
 }
 
 /* Иконка — "+" (2 перекрестных штриха, см. faq-accordion.php), не
@@ -3262,7 +3412,7 @@ a {
 	background: currentColor;
 	-webkit-mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
 	mask: url(../icons/faq-chevron.svg) center / contain no-repeat;
-	transition: transform 0.2s ease;
+	transition: transform var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
 }
 
 .faq__item[open] > summary:not(.faq__question)::after {
@@ -4701,6 +4851,8 @@ p.contact-block__legal {
 	.site-header .site-header__nav.is-open {
 		display: flex;
 		z-index: 10;
+		/* Появление меню — общий кадр из раздела «Состояния и движение». */
+		animation: whoopstore-reveal var(--wp--custom--motion--base) var(--wp--custom--motion--ease);
 	}
 
 	/* Селектор через .site-header — по той же причине, что у __nav выше:
