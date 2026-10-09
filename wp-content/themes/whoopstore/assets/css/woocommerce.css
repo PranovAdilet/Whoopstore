@@ -20,6 +20,34 @@
 	margin-top: 0;
 }
 
+/* Крошки товара — самая длинная цепочка на сайте: дом → категория →
+   подкатегория → имя товара. Строка в одну линию, а тексты обрезаются
+   многоточием, когда места не хватает (правка 2026-09-25: раньше это
+   работало только ниже 782px, а между 782 и 1200 строка просто уезжала
+   за край). Иконки при этом остаются целыми — см. .page-head__crumb-home
+   в theme.css. Текущая крошка (имя товара) отдаёт место первой: у неё
+   flex-grow, у промежуточных — только сжатие. */
+.product-page .page-head__crumbs {
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+.product-page .page-head__crumb-link,
+.product-page .page-head__crumb-current {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+
+.product-page .page-head__crumb-link {
+	flex: 0 1 auto;
+}
+
+.product-page .page-head__crumb-current {
+	flex: 1 1 auto;
+}
+
 /* 60px = 212 (верх фото и H1) − 152 (низ строки крошек) по Figma. */
 .product-page__layout {
 	display: flex;
@@ -49,14 +77,25 @@
 }
 
 /* 645 = миниатюры 120 + 12 + большое фото 513; 455 — колонка данных.
-   645 + 20 + 455 = 1120 — контентная ширина страницы. */
+   645 + 20 + 455 = 1120 — контентная ширина страницы.
+
+   Колонки сжимаемые (flex-shrink 1, min-width 0), а не фиксированные:
+   макеты есть только на 1440 и 360, а между 782 (граница мобильной
+   раскладки) и 1200 (1120 контента + 2×40 боковых) две колонки по
+   фиксированной ширине не помещались — верх страницы уезжал вправо и
+   срезался (body{overflow-x:hidden} в theme.css), правка 2026-09-25.
+   max-width оставляет на широких экранах ровно макетные 645/455: расти
+   колонкам некуда, значит геометрия на 1200+ не изменилась, сжатие
+   включается только когда места действительно нет. */
 .product-page__layout > .woocommerce-product-gallery {
-	flex: 0 0 645px;
+	flex: 1 1 645px;
+	min-width: 0;
 	max-width: 645px;
 }
 
 .product-page__summary {
-	flex: 0 0 455px;
+	flex: 0 1 455px;
+	min-width: 0;
 	max-width: 455px;
 }
 
@@ -80,7 +119,8 @@
    элементе, который в этот момент является flex-ребёнком галереи. */
 .product-page .woocommerce-product-gallery > .woocommerce-product-gallery__wrapper,
 .product-page .woocommerce-product-gallery > .flex-viewport {
-	flex: 0 0 513px;
+	flex: 1 1 513px;
+	min-width: 0;
 	max-width: 513px;
 }
 
@@ -184,11 +224,15 @@
 /* Точки-пагинация поверх нижнего края большого фото: 3 точки 4×4 с шагом
    3px (общая ширина 18px из макета), 12px от низа фото. Разметку строит
    assets/js/product-gallery.js. */
+/* right вместо width: фото ниже 1200px сжимается, а точки должны
+   оставаться по центру именно фото. На 1200+ это те же 513px
+   (645 − 132), геометрия макета не меняется. */
 .product-gallery__dots {
 	position: absolute;
 	left: calc(120px + 12px);
+	right: 0;
 	bottom: 12px;
-	width: 513px;
+	width: auto;
 	display: flex;
 	justify-content: center;
 	gap: 3px;
@@ -210,6 +254,18 @@
 
 .product-gallery__dot.is-active {
 	background: var(--wp--preset--color--foreground);
+}
+
+/* Товар без фото: WooCommerce ставит заглушку и рисует ей рамку
+   `border:1px solid #f2f2f2` (woocommerce.css ядра) — почти белая линия,
+   рассчитанная на светлую тему, на нашем тёмном фоне она бьёт по глазам.
+   Цвет заменён на тот же приглушённый бордер, которым тема обводит
+   элементы в других местах (правило 14 CLAUDE.md), сама рамка оставлена:
+   она обозначает границы фотозоны, пока фото нет.
+   Селектор повторяет ядро (`.woocommerce div.product div.images …`,
+   0,4,2) плюс .product-page — иначе проигрывает по специфичности. */
+.woocommerce .product-page div.product div.images .woocommerce-product-gallery__image--placeholder {
+	border-color: var(--wp--preset--color--surface-translucent);
 }
 
 /* ---------- Колонка данных товара (Figma 30:184 / 30:1222) ---------- */
@@ -1322,43 +1378,31 @@ body.has-cart-drawer {
 		padding: 33px 20px 0;
 	}
 
-	/* Крошки в одну строку: в макете (node 30:1206/30:1208) промежуточная
-	   крошка обрезается до "Whoop ..." с градиентным фейдом. Тот же эффект
-	   штатным text-overflow — плюс обрезаем и текущую крошку: в макете это
-	   короткое "Chestnut/Cream with Titanium", а реальное имя товара
-	   длиннее и иначе переносило бы строку. */
-	.product-page .page-head__crumbs {
-		flex-wrap: nowrap;
-		min-width: 0;
-	}
-
-	.product-page .page-head__crumb-link,
-	.product-page .page-head__crumb-current {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
+	/* Ширина промежуточной крошки на mobile — из макета (node 30:1206:
+	   "Whoop ..." с градиентным фейдом). Остальные правила строки крошек
+	   вынесены из медиазапроса: сжиматься она должна на любой ширине. */
 	.product-page .page-head__crumb-link {
-		flex: 0 1 auto;
 		max-width: 80px;
 	}
 
-	.product-page .page-head__crumb-current {
-		flex: 1 1 auto;
-		min-width: 0;
-	}
-
-	/* Фото → заголовок: 527 − 497 = 30px по координатам макета. */
+	/* Крошки → фото: 141 (верх фото, node 30:1209) − 111 (низ строки
+	   крошек) = 30px по координатам макета. Зазор «фото → заголовок»
+	   отмеряет margin-top у .product-page__summary ниже. */
 	.product-page__layout {
 		display: block;
 		margin-top: 30px;
 	}
 
-	/* Колонка данных на mobile — во всю ширину контента, а не 455px. */
+	/* Колонка данных на mobile — во всю ширину контента, а не 455px.
+	   margin-top 30px — зазор «низ фото → H1» из макета (node 30:1209
+	   низ 497, node 30:1222 верх 527). Раньше эти 30px стояли только у
+	   .product-page__layout, то есть отмеряли «крошки → фото» (там по
+	   макету тоже 30: низ крошек 111 → верх фото 141), а заголовок
+	   упирался прямо в фото. */
 	.product-page__summary {
 		flex: none;
 		max-width: none;
+		margin-top: 30px;
 	}
 
 	/* Галерея на mobile — во всю ширину экрана (в макете фото начинается от
