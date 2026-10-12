@@ -12,6 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once get_theme_file_path( 'inc/setup.php' );
+
+// Типографика (неразрывные пробелы) — раньше остальных: её фильтры висят на
+// общем выводе блоков и содержимого, а не на конкретной секции.
+require_once get_theme_file_path( 'inc/typography.php' );
 require_once get_theme_file_path( 'inc/card-component.php' );
 require_once get_theme_file_path( 'inc/page-head-component.php' );
 require_once get_theme_file_path( 'inc/woocommerce/template-hooks.php' );
