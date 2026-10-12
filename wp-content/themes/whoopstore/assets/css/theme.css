@@ -5,6 +5,39 @@
 	box-sizing: border-box;
 }
 
+/* ---------- Ширина контента: одно место на весь сайт ---------- */
+
+/* Раньше ширина жила в трёх местах сразу: contentSize в theme.json (его
+   WordPress сам подставляет всем блокам-контейнерам), четыре правила с
+   1200px («холст» страницы) и семь с 1120px у отдельных секций. Поменять её
+   можно было только обходом по всему файлу.
+
+   Теперь источник один — эти две переменные, а правила ниже ссылаются на них.
+   Переменную WordPress переопределяем здесь же: в разметке она подставлена
+   как `max-width: var(--wp--style--global--content-size)`, и наш файл
+   подключается после глобальных стилей, поэтому переопределение работает.
+
+   canvas — внешний холст секции (контент + боковые поля по 40px),
+   content — сам контент. Разница между ними всегда 80px.
+
+   На экранах шире 1600px и то и другое становится больше: заказчик попросил
+   попробовать более широкий контейнер на больших мониторах (2026-10-12).
+   Макет нарисован под холст 1440/контент 1200, поэтому расширение —
+   осознанное отступление от него, а не исправление; откатывается правкой
+   двух чисел. */
+:root {
+	--whoopstore-canvas: 1200px;
+	--whoopstore-content: 1120px;
+	--wp--style--global--content-size: var(--whoopstore-content);
+}
+
+@media (min-width: 1600px) {
+	:root {
+		--whoopstore-canvas: 1360px;
+		--whoopstore-content: 1280px;
+	}
+}
+
 /* overflow-x:hidden (по фидбеку пользователя — появился горизонтальный
    скролл всей страницы вне зависимости от размера экрана): классический
    побочный эффект приёма "left:50%; margin-left:-50vw" у
@@ -167,7 +200,7 @@ a {
    из трёх — это заготовка на случай, если он понадобится позже какой-то
    из них, без переверстывания структуры. */
 .section-canvas {
-	max-width: 1200px;
+	max-width: var(--whoopstore-canvas);
 	margin-inline: auto;
 }
 
@@ -196,7 +229,7 @@ a {
    а не копия правила под каждый новый <main>. */
 .front-page,
 .page-canvas {
-	max-width: 1200px;
+	max-width: var(--whoopstore-canvas);
 	margin-inline: auto;
 }
 
@@ -1133,7 +1166,7 @@ a {
 	   была 1200px, и надо было лишь снять автоматические 1120 от WP) —
 	   после того как обёртка стала full-bleed, сетку контента держит именно
 	   этот блок. */
-	max-width: 1200px;
+	max-width: var(--whoopstore-canvas);
 	margin-inline: auto;
 	margin-top: 0;
 	min-height: 560px;
@@ -2124,7 +2157,7 @@ a {
    вплотную к "Активация…"; полная — 120px, как везде) — mobile-override
    для --compact ниже, в медиа-запросе. */
 .straps-carousel {
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin-inline: auto;
 	margin-top: var(--wp--custom--section-gap--default, 140px);
 	display: flex;
@@ -2172,7 +2205,7 @@ a {
 .straps-carousel--personalize {
 	position: relative;
 	display: block;
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	background: transparent;
 	border-radius: 0;
 	padding: 0;
@@ -2569,7 +2602,7 @@ a {
    значения возвращаются к прежним в медиа-запросе ниже — там своя,
    отдельно подтверждённая геометрия (452px карточка). */
 .analytics-banner {
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin-inline: auto;
 	margin-top: var(--wp--custom--section-gap--default, 140px);
 	display: flex;
@@ -2966,7 +2999,7 @@ a {
    мокапа 9244+406=9650 = низ карточки 9281+369=9650 день-в-день). */
 .no-display__card {
 	position: relative;
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin-inline: auto;
 	min-height: 369px;
 	padding: 80px 0 40px 86px;
@@ -3357,7 +3390,7 @@ a {
 .faq__content {
 	position: relative;
 	z-index: 1;
-	max-width: 1200px;
+	max-width: var(--whoopstore-canvas);
 	margin-inline: auto;
 	padding: 0 40px;
 }
@@ -3685,7 +3718,7 @@ p.contact-block__legal {
    растягивается) — теперь весь блок "телефон+текст" центрируется как
    одно целое. */
 .telegram-subscribe {
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin-inline: auto;
 	margin-top: var(--wp--custom--section-gap--default, 140px);
 	display: flex;
@@ -3839,7 +3872,7 @@ p.contact-block__legal {
    в макете осознанно выступает на 37px выше её верхнего края. */
 .compare-card {
 	position: relative;
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin-inline: auto;
 	height: 376px;
 }
@@ -3895,7 +3928,7 @@ p.contact-block__legal {
    вручную проценты. */
 .compare-table {
 	width: 100%;
-	max-width: 1120px;
+	max-width: var(--whoopstore-content);
 	margin: var(--wp--custom--section-gap--default, 140px) auto 0;
 	border-collapse: collapse;
 	table-layout: fixed;
