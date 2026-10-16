@@ -1233,7 +1233,9 @@ a {
 	}
 
 	.home-hero-wrap .hero-panel {
-		min-height: clamp(560px, 72vh, 720px);
+		--hero-height: clamp(560px, 72vh, 720px);
+
+		min-height: var(--hero-height);
 		align-items: stretch;
 	}
 
@@ -1241,7 +1243,26 @@ a {
 	   границей. Селектор с обёрткой (0,2,0) перебивает одиночный
 	   .hero-panel--subscriptions (0,1,0) независимо от порядка в файле. */
 	.home-hero-wrap .hero-panel--subscriptions {
-		min-height: clamp(585px, 72vh, 720px);
+		--hero-height: clamp(585px, 72vh, 720px);
+	}
+
+	/* Ширина плашки следует за её высотой, иначе она вытягивается вниз
+	   (замечание заказчика 2026-10-16: «в вёрстке плашка удлинённая, в макете
+	   более квадратная»). В макете она 550×490 — почти квадрат; когда высота
+	   поехала за окном, а ширина осталась макетной, пропорция и сломалась.
+	   Теперь ширина считается от той же высоты по макетному отношению
+	   550/490, то есть плашка остаётся такой же квадратной на любом экране.
+	   Потолок в 52% ряда — чтобы она не съедала фотографию: в макете плашка
+	   занимает 46% контентной ширины, и держаться около этой доли важнее,
+	   чем дотянуть пропорцию до идеала на сверхшироких мониторах. */
+	.home-hero-wrap .hero-panel__content-left {
+		width: min(calc(var(--hero-height) * 550 / 490), 52%);
+		max-width: none;
+	}
+
+	.home-hero-wrap .hero-panel--subscriptions .hero-panel__content-left {
+		width: min(calc(var(--hero-height) * 560 / 517), 52%);
+		max-width: none;
 	}
 
 	.home-hero-wrap .hero-panel > .hero-panel__content {
