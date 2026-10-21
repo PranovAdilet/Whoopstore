@@ -118,7 +118,7 @@ $whoopstore_faq = [
 		<div class="faq__media" aria-hidden="true">
 			<picture class="faq__media-picture">
 				<source media="(max-width: 781px)" srcset="/wp-content/uploads/2026/09/Rectangle-100265-1.webp" width="360" height="988" />
-				<img class="faq__media-photo" src="/wp-content/uploads/2026/09/Rectangle-100265-2x.webp" alt="" width="2400" height="2400" loading="lazy" />
+				<img class="faq__media-photo" src="/wp-content/uploads/2026/09/Rectangle-100265-2x.webp" alt="" width="1200" height="1200" loading="lazy" />
 			</picture>
 			<div class="faq__media-scrim"></div>
 		</div>
