@@ -208,7 +208,9 @@ add_action( 'wp_enqueue_scripts', function () {
 // (см. .home-hero-wrap--subscriptions в theme.css).
 function whoopstore_hero_background_url() {
 	if ( is_front_page() ) {
-		return '/wp-content/uploads/2026/09/Rectangle-100233.webp';
+		// Сразу выгрузка 2×: она же стоит фоном в theme.css, предзагружать
+		// нужно ровно тот файл, который браузер потом возьмёт.
+		return '/wp-content/uploads/2026/09/Rectangle-100233-2x.webp';
 	}
 
 	if ( is_page_template( 'page-subscriptions' ) ) {

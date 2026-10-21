@@ -144,7 +144,7 @@
 		</div>
 
 		<div class="no-display__media-wrap" aria-hidden="true">
-			<img class="no-display__media" src="/wp-content/uploads/2026/09/Group-1000010609.webp" srcset="/wp-content/uploads/2026/09/Group-1000010609.webp 1x, /wp-content/uploads/2026/09/Group-1000010609-2x.webp 2x" alt="" width="425" height="406" loading="lazy" />
+			<img class="no-display__media" src="/wp-content/uploads/2026/09/Group-1000010609-2x.webp" alt="" width="850" height="812" loading="lazy" />
 		</div>
 
 	</div>
@@ -179,7 +179,7 @@
 	<!-- wp:html -->
 	<div class="no-display__benefits-row">
 		<div class="no-display__benefits-glow" aria-hidden="true">
-			<img class="no-display__benefits-device" src="/wp-content/uploads/2026/09/videoframe_7765-no-bg-HD-carve.photos-1.webp" srcset="/wp-content/uploads/2026/09/videoframe_7765-no-bg-HD-carve.photos-1.webp 1x, /wp-content/uploads/2026/09/videoframe_7765-no-bg-HD-carve.photos-1-2x.webp 2x" alt="" width="266" height="354" loading="lazy" />
+			<img class="no-display__benefits-device" src="/wp-content/uploads/2026/09/videoframe_7765-no-bg-HD-carve.photos-1-2x.webp" alt="" width="532" height="708" loading="lazy" />
 		</div>
 		<div class="no-display__benefits">
 			<div class="no-display__benefit is-active">

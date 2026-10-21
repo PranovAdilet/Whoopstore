@@ -1145,28 +1145,15 @@ a {
 	z-index: -1;
 	max-width: none;
 	margin: 0;
-	/* Две выгрузки: обычная и 2× (2026-10-21). Браузер сам берёт вторую на
-	   плотных экранах — на обычных по-прежнему качается лёгкий файл.
-	   Первая строка background-image — запасная для браузеров без image-set,
-	   они просто не поймут следующие и останутся на ней. */
+	/* Выгрузка 2× подставляется безусловно (решение 2026-10-21): выбор через
+	   image-set отдавал лёгкий файл всем экранам обычной плотности, а фон
+	   растягивается на всю ширину окна и там мягкость заметна. Качество тут
+	   важнее экономии веса — цена решения записана в commerce-notes. */
 	background-color: #14171c;
-	background-image: url('/wp-content/uploads/2026/09/Rectangle-100233.webp');
-	background-image: -webkit-image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
-	background-image: image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+	background-image: url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp');
 	background-position: center;
 	background-size: cover;
 	background-repeat: no-repeat;
-}
-
-/* Фон растягивается на всю ширину окна, а image-set выше выбирает файл
-   только по плотности экрана. На обычном широком мониторе (плотность 1,
-   ширина 1600–2560) браузер брал бы версию 1200px и растягивал её вдвое —
-   ровно то, на что жаловался заказчик. Поэтому с ширины, где картинка 1×
-   уже не покрывает экран, берём выгрузку 2× независимо от плотности. */
-@media (min-width: 1200px) {
-	.home-hero-wrap__media {
-		background-image: url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp');
-	}
 }
 
 /* Аудит 2026-09-07 (round 7, по просьбе пользователя): раньше был только
@@ -5506,17 +5493,11 @@ p.contact-block__legal {
 		   что Rectangle-100233, только другой кроп. 75% по горизонтали дают
 		   тот же кадр, что в макете (рука на стволе, папоротник у левого
 		   края). Верхний слой — растворение низа фото в фоне (1:3496). */
-		/* Тот же приём с 2×, что и на desktop выше. */
+		/* Та же выгрузка 2×, что и на desktop выше. */
 		background-color: #14171c;
 		background-image:
 			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
-			url('/wp-content/uploads/2026/09/Rectangle-100233.webp');
-		background-image:
-			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
-			-webkit-image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
-		background-image:
-			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
-			image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+			url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp');
 		background-position: 0 0, 75% center;
 		background-size: 100% 100%, cover;
 		background-repeat: no-repeat, no-repeat;
