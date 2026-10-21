@@ -1145,7 +1145,17 @@ a {
 	z-index: -1;
 	max-width: none;
 	margin: 0;
-	background: #14171c url('/wp-content/uploads/2026/09/Rectangle-100233.webp') center/cover no-repeat;
+	/* Две выгрузки: обычная и 2× (2026-10-21). Браузер сам берёт вторую на
+	   плотных экранах — на обычных по-прежнему качается лёгкий файл.
+	   Первая строка background-image — запасная для браузеров без image-set,
+	   они просто не поймут следующие и останутся на ней. */
+	background-color: #14171c;
+	background-image: url('/wp-content/uploads/2026/09/Rectangle-100233.webp');
+	background-image: -webkit-image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+	background-image: image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+	background-position: center;
+	background-size: cover;
+	background-repeat: no-repeat;
 }
 
 /* Аудит 2026-09-07 (round 7, по просьбе пользователя): раньше был только
@@ -5485,9 +5495,20 @@ p.contact-block__legal {
 		   что Rectangle-100233, только другой кроп. 75% по горизонтали дают
 		   тот же кадр, что в макете (рука на стволе, папоротник у левого
 		   края). Верхний слой — растворение низа фото в фоне (1:3496). */
-		background:
-			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px) 0 0 / 100% 100% no-repeat,
-			#14171c url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 75% center / cover no-repeat;
+		/* Тот же приём с 2×, что и на desktop выше. */
+		background-color: #14171c;
+		background-image:
+			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
+			url('/wp-content/uploads/2026/09/Rectangle-100233.webp');
+		background-image:
+			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
+			-webkit-image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+		background-image:
+			linear-gradient(180deg, rgba(15, 18, 23, 0) 266px, #0f1217 369px),
+			image-set(url('/wp-content/uploads/2026/09/Rectangle-100233.webp') 1x, url('/wp-content/uploads/2026/09/Rectangle-100233-2x.webp') 2x);
+		background-position: 0 0, 75% center;
+		background-size: 100% 100%, cover;
+		background-repeat: no-repeat, no-repeat;
 	}
 
 	/* Селектор с родителем (0,2,0), а не одиночный класс. Медиазапросы

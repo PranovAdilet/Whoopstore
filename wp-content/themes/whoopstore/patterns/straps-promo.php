@@ -118,7 +118,7 @@
 		<div class="straps-carousel__photo-group">
 			<picture>
 				<source media="(max-width: 781px)" srcset="/wp-content/uploads/2026/09/straps-fan-mobile.webp" width="782" height="520" />
-				<img class="straps-carousel__photo-group-img" src="/wp-content/uploads/2026/09/Group-1000010476.webp" alt="" loading="lazy" />
+				<img class="straps-carousel__photo-group-img" src="/wp-content/uploads/2026/09/Group-1000010476.webp" srcset="/wp-content/uploads/2026/09/Group-1000010476.webp 1x, /wp-content/uploads/2026/09/Group-1000010476-2x.webp 2x" alt="" loading="lazy" />
 			</picture>
 		</div>
 

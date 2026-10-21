@@ -226,9 +226,25 @@ add_action( 'wp_head', function () {
 		return;
 	}
 
+	// Если рядом лежит выгрузка 2× (суффикс -2x), отдаём браузеру обе: без
+	// imagesrcset плотный экран скачал бы сначала preload'ом обычную версию,
+	// а потом из CSS — крупную, то есть две картинки вместо одной.
+	$whoopstore_hero_retina = preg_replace( '~\.webp$~', '-2x.webp', $whoopstore_hero_background );
+	$whoopstore_hero_srcset = '';
+
+	if ( $whoopstore_hero_retina !== $whoopstore_hero_background
+		&& file_exists( ABSPATH . ltrim( $whoopstore_hero_retina, '/' ) ) ) {
+		$whoopstore_hero_srcset = sprintf(
+			' imagesrcset="%s 1x, %s 2x"',
+			esc_url( $whoopstore_hero_background ),
+			esc_url( $whoopstore_hero_retina )
+		);
+	}
+
 	printf(
-		'<link rel="preload" as="image" href="%s" fetchpriority="high" />' . "\n",
-		esc_url( $whoopstore_hero_background )
+		'<link rel="preload" as="image" href="%s"%s fetchpriority="high" />' . "\n",
+		esc_url( $whoopstore_hero_background ),
+		$whoopstore_hero_srcset // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- собрано через esc_url() выше.
 	);
 }, 2 );
 
