@@ -50,17 +50,19 @@ function whoopstore_qa_check( $title, $ok, $detail = '' ) {
 }
 
 // Поддельный Telegram. Токен GOOD — рабочий бот, чат -100777 существует.
-$whoopstore_qa_sent    = [];
-$whoopstore_qa_calls   = [];
-$whoopstore_qa_offline = false;
+$whoopstore_qa_sent     = [];
+$whoopstore_qa_calls    = [];
+$whoopstore_qa_offline  = false;
+$whoopstore_qa_timeouts = [];
 
-add_filter( 'pre_http_request', function ( $pre, $args, $url ) use ( &$whoopstore_qa_sent, &$whoopstore_qa_calls, &$whoopstore_qa_offline ) {
+add_filter( 'pre_http_request', function ( $pre, $args, $url ) use ( &$whoopstore_qa_sent, &$whoopstore_qa_calls, &$whoopstore_qa_offline, &$whoopstore_qa_timeouts ) {
 	if ( ! preg_match( '#api\.telegram\.org/bot([^/]+)/(\w+)#', (string) $url, $match ) ) {
 		return new WP_Error( 'whoopstore_qa_blocked', 'outbound HTTP blocked in tools/qa/telegram.php' );
 	}
 
 	list( , $token, $method ) = $match;
 	$whoopstore_qa_calls[]    = [ $method, $args['body'] ];
+	$whoopstore_qa_timeouts[] = (int) $args['timeout'];
 
 	if ( $whoopstore_qa_offline ) {
 		return new WP_Error( 'http_request_failed', 'cURL error 28: timeout for ' . $url );
@@ -269,10 +271,15 @@ whoopstore_qa_check( 'отметки об отправке нет — ждём �
 whoopstore_qa_check( 'попытка записана', 1 === (int) wc_get_order( $order_id )->get_meta( WHOOPSTORE_TELEGRAM_ATTEMPTS_META ) );
 whoopstore_qa_check( 'повтор запланирован', (bool) as_next_scheduled_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, [ 'order_id' => $order_id ], 'whoopstore' ) );
 
-$whoopstore_qa_sent    = [];
-$whoopstore_qa_offline = false;
+whoopstore_qa_check( 'первая отправка ждёт недолго — она внутри чужого запроса', [ WHOOPSTORE_TELEGRAM_TIMEOUT ] === array_slice( $whoopstore_qa_timeouts, -1 ), implode( ',', $whoopstore_qa_timeouts ) );
+
+$whoopstore_qa_sent     = [];
+$whoopstore_qa_timeouts = [];
+$whoopstore_qa_offline  = false;
 do_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, $order_id );
 whoopstore_qa_check( 'связь вернулась — уведомление ушло с повтора', 1 === count( $whoopstore_qa_sent ) );
+whoopstore_qa_check( 'повтор ждёт дольше — его никто не держит', [ WHOOPSTORE_TELEGRAM_RETRY_TIMEOUT ] === $whoopstore_qa_timeouts, implode( ',', $whoopstore_qa_timeouts ) );
+whoopstore_qa_check( 'запас снят после повтора', WHOOPSTORE_TELEGRAM_TIMEOUT === (int) apply_filters( 'whoopstore_telegram_timeout', WHOOPSTORE_TELEGRAM_TIMEOUT, 'sendMessage' ) );
 whoopstore_qa_check( 'отметка sent, счётчик попыток очищен', 'sent' === wc_get_order( $order_id )->get_meta( '_whoopstore_telegram_notified' ) && '' === wc_get_order( $order_id )->get_meta( WHOOPSTORE_TELEGRAM_ATTEMPTS_META ) );
 
 $whoopstore_qa_sent    = [];

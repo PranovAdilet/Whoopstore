@@ -43,6 +43,20 @@ const WHOOPSTORE_TELEGRAM_RETRY_HOOK   = 'whoopstore_telegram_retry';
 const WHOOPSTORE_TELEGRAM_ATTEMPTS_META = '_whoopstore_telegram_attempts';
 
 /**
+ * Таймауты запроса к Bot API, секунды.
+ *
+ * Первая отправка идёт внутри чужого запроса — оформления заказа или
+ * уведомления ЮKassa, — поэтому ждать там долго нельзя. Повтор идёт в
+ * планировщике, его никто не ждёт, и ему достаётся запас: маршрут до
+ * api.telegram.org с российского хостинга временами теряет пакеты, и
+ * TCP успевает переспросить. Заказ №450 (2026-10-23) обе попытки упёрся
+ * в cURL 28 ровно на пятой секунде, хотя API в это же время отвечал за
+ * 0,2 с из консоли.
+ */
+const WHOOPSTORE_TELEGRAM_TIMEOUT       = 5;
+const WHOOPSTORE_TELEGRAM_RETRY_TIMEOUT = 20;
+
+/**
  * Токен бота и ID чата: константа из wp-config.php, иначе — настройка.
  *
  * @return array{token: string, chat_id: string}
@@ -76,7 +90,7 @@ function whoopstore_telegram_api( $method, $params = [] ) {
 
 	$base     = defined( 'WHOOPSTORE_TELEGRAM_API_BASE' ) ? rtrim( (string) WHOOPSTORE_TELEGRAM_API_BASE, '/' ) : 'https://api.telegram.org';
 	$response = wp_remote_post( $base . '/bot' . $token . '/' . $method, [
-		'timeout' => 5,
+		'timeout' => (int) apply_filters( 'whoopstore_telegram_timeout', WHOOPSTORE_TELEGRAM_TIMEOUT, $method ),
 		'body'    => $params,
 	] );
 
@@ -325,9 +339,27 @@ function whoopstore_telegram_schedule_retry( $order, $logger, $context ) {
 	as_schedule_single_action( time() + $delay, WHOOPSTORE_TELEGRAM_RETRY_HOOK, [ 'order_id' => $order->get_id() ], 'whoopstore' );
 }
 
-// Повтор отправки: тот же код, что и при оформлении, — отметки об отправке на
-// заказе ещё нет, поэтому уведомление уйдёт заново.
-add_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, 'whoopstore_telegram_notify_order' );
+/**
+ * Повтор отправки: тот же код, что и при оформлении, — отметки об отправке на
+ * заказе ещё нет, поэтому уведомление уйдёт заново. Отличие одно: запрос ждёт
+ * дольше (WHOOPSTORE_TELEGRAM_RETRY_TIMEOUT).
+ *
+ * @param int|WC_Order $order Заказ или его ID.
+ */
+function whoopstore_telegram_notify_order_retry( $order ) {
+	$timeout = static function () {
+		return WHOOPSTORE_TELEGRAM_RETRY_TIMEOUT;
+	};
+
+	add_filter( 'whoopstore_telegram_timeout', $timeout );
+
+	try {
+		whoopstore_telegram_notify_order( $order );
+	} finally {
+		remove_filter( 'whoopstore_telegram_timeout', $timeout );
+	}
+}
+add_action( WHOOPSTORE_TELEGRAM_RETRY_HOOK, 'whoopstore_telegram_notify_order_retry' );
 
 // Заказ из формы «Ваш заказ» (Store API) и, на всякий случай, со штатной
 // страницы /checkout/.
