@@ -704,7 +704,14 @@ a {
 /* Аудит 2026-09-09 (по скринам пользователя Figma vs stage): подтверждено
    raw/homepage-desktop.partial-1.code.tsx.txt:1083 — text-center + underline,
    сейчас в футере на стейдже ни того, ни другого не было. */
+/* Политика и оферта в одну строку, на узком экране — друг под другом.
+   Промежуток задаёт gap, а не пробел в разметке: иначе подчёркивание
+   абзаца протянулось бы и под него. */
 .site-footer__legal {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px 24px;
 	margin-top: 20px;
 	color: var(--wp--preset--color--foreground-muted);
 	text-align: center;

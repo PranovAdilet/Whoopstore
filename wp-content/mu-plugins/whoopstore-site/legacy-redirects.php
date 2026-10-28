@@ -18,9 +18,10 @@
  *   • только 404 — существующие адреса нового сайта не перехватываются, даже
  *     если совпадут со строкой таблицы;
  *   • сравнение по пути без query string и без учёта регистра, завершающий
- *     слэш необязателен;
- *   • /publichnaya-oferta/ в таблицу не входит: страницы оферты на новом
- *     сайте пока нет, и перенаправлять её некуда.
+ *     слэш необязателен.
+ *
+ * /politika-konfidenczialnosti/ и /publichnaya-oferta/ на новом сайте живут
+ * по тем же адресам, поэтому в таблице только их кривые варианты.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -151,6 +152,10 @@ function whoopstore_legacy_redirects() {
 		'/product-category/whoop/page/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
 		'/product-tag/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
 		'/product/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
+		'/product-category/publichnaya-oferta/' => '/publichnaya-oferta/',
+		'/product-category/whoop/page/publichnaya-oferta/' => '/publichnaya-oferta/',
+		'/product-tag/publichnaya-oferta/' => '/publichnaya-oferta/',
+		'/product/publichnaya-oferta/' => '/publichnaya-oferta/',
 	);
 }
 
