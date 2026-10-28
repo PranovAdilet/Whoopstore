@@ -66,22 +66,37 @@
  * LIFE и ПРОБНАЯ используют ассеты, которые побайтово совпали с уже
  * лежащими в Медиатеке device-whoop-peak-annual.png и
  * device-whoop-life-annual.png (проверено md5) — новых копий не заводим.
+ *
+ * Цены ONE / PEAK / LIFE — из товаров-подписок (категория podpiski-whoop,
+ * товар с названием плана), а не из макета: менеджер меняет цену в товаре,
+ * и таблица не расходится с карточками. Товар не нашёлся — цена не
+ * выводится, а не показывается устаревшая.
  */
+
+$whoopstore_compare_price = static function ( $plan ) {
+	foreach ( whoopstore_category_products( 'podpiski-whoop' ) as $product ) {
+		if ( false !== mb_stripos( $product->get_name(), $plan ) ) {
+			return wp_strip_all_tags( wc_price( wc_get_price_to_display( $product ) ) );
+		}
+	}
+
+	return '';
+};
 
 $whoopstore_compare_plans = [
 	[
 		'name'  => 'ONE',
-		'price' => '21 990,00 ₽',
+		'price' => $whoopstore_compare_price( 'One' ),
 		'image' => '/wp-content/uploads/2026/09/XxHSGND0LxCtAUYxCMxR-1.webp',
 	],
 	[
 		'name'  => 'PEAK',
-		'price' => '27 990,00 ₽',
+		'price' => $whoopstore_compare_price( 'Peak' ),
 		'image' => '/wp-content/uploads/2026/09/device-whoop-peak-annual.webp',
 	],
 	[
 		'name'  => 'LIFE',
-		'price' => '34 990,00 ₽',
+		'price' => $whoopstore_compare_price( 'Life' ),
 		'image' => '/wp-content/uploads/2026/09/device-whoop-life-annual.webp',
 	],
 	[
