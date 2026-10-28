@@ -27,3 +27,4 @@ require_once __DIR__ . '/whoopstore-site/seo.php';
 require_once __DIR__ . '/whoopstore-site/analytics.php';
 require_once __DIR__ . '/whoopstore-site/content.php';
 require_once __DIR__ . '/whoopstore-site/redirects.php';
+require_once __DIR__ . '/whoopstore-site/legacy-redirects.php';
