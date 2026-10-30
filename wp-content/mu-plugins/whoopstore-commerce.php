@@ -21,6 +21,7 @@ require_once __DIR__ . '/whoopstore-commerce/checkout.php';
 require_once __DIR__ . '/whoopstore-commerce/shipping.php';
 require_once __DIR__ . '/whoopstore-commerce/cdek.php';
 require_once __DIR__ . '/whoopstore-commerce/telegram.php';
+require_once __DIR__ . '/whoopstore-commerce/email.php';
 
 // Настройка Telegram в админке (WooCommerce → Настройки → Дополнительно → Telegram).
 if ( is_admin() ) {
