@@ -1357,8 +1357,12 @@ a {
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
+	/* Правка 2026-11-11 (заказчик: «в углу более светлый зелёный»): цвета и
+	   спад сняты замерами со скриншота макета первого экрана — ярче всего
+	   #0b5f47 в верхней левой четверти, к нижнему правому углу уходит в
+	   #0f1217. Раньше было #0d322b — вдвое темнее. */
 	background:
-		radial-gradient(ellipse 130% 130% at 22% 8%, #0d322b 0%, #0f1217 65%);
+		radial-gradient(ellipse 120% 110% at 25% 10%, #0b5f47 0%, #0b5a44 15%, #0d3a30 40%, #0f1217 70%);
 	padding: 40px 30px;
 	border-radius: 20px;
 
@@ -2187,6 +2191,22 @@ a {
 	position: absolute;
 	inset: 0;
 	border-radius: inherit;
+}
+
+/* Карточки трекеров (Главная #devices, «Подписки» #buy). По макету область
+   фото у них горизонтальная (около 3:2 при ширине карточки 360px), фото — во
+   всю область без внутреннего поля. В квадрате годовые наборы «браслет +
+   зарядка» упирались в ширину и выходили мелкими, а месячные браслеты —
+   в высоту и выходили крупными (замечание заказчика 2026-11-11). Каталоги
+   ремешков не трогаем: там макетный квадрат. */
+.device-grid .device-card__media,
+#buy .device-card__media {
+	aspect-ratio: 3 / 2;
+}
+
+.device-grid .device-card__media .device-card__photo,
+#buy .device-card__media .device-card__photo {
+	padding: 0;
 }
 
 /* Модель в скобках — своей строкой (см. whoopstore_device_card()). */
