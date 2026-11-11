@@ -160,6 +160,10 @@ add_action( 'wp_enqueue_scripts', function () {
 		// уже был навешан к моменту первого программного выбора варианта.
 		wp_enqueue_script( 'whoopstore-variation-swatches', get_theme_file_uri( 'assets/js/variation-swatches.js' ), [ 'wc-add-to-cart-variation' ], whoopstore_asset_version( 'assets/js/variation-swatches.js' ), true );
 
+		// Цена вариативного товара одной строкой: при выборе варианта меняется
+		// цена вверху, а не появляется вторая под переключателем.
+		wp_enqueue_script( 'whoopstore-variation-price', get_theme_file_uri( 'assets/js/variation-price.js' ), [ 'jquery', 'wc-add-to-cart-variation' ], whoopstore_asset_version( 'assets/js/variation-price.js' ), true );
+
 		// Точки-пагинация галереи (в макете есть и на desktop, и на mobile —
 		// вторая навигация по слайдам рядом с миниатюрами, см. сам файл).
 		wp_enqueue_script( 'whoopstore-product-gallery', get_theme_file_uri( 'assets/js/product-gallery.js' ), [ 'wc-single-product' ], whoopstore_asset_version( 'assets/js/product-gallery.js' ), true );
