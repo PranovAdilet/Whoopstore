@@ -48,17 +48,10 @@ function whoopstore_legacy_redirects() {
 
 		// Товара на новом сайте нет — ближайший раздел каталога.
 		'/product/besprovodnoj-zaryadnyj-blok-wireless-powerpack-dlya-whoop-5-0-mg/' => '/#accessories',
-		'/product/kashemirovyj-remeshok-dlya-whoop-4-0-knit-wrist-bands-haven/' => '/remeshki-whoop-5-0/',
-		'/product/kashemirovyj-remeshok-dlya-whoop-4-0-knit-wrist-bands-shadow/' => '/remeshki-whoop-5-0/',
 		'/product/nydroknit-vand-storm-gray/' => '/remeshki-whoop-5-0/',
 		'/product/nydroknit-viser-vand-deer-end/' => '/remeshki-whoop-5-0/',
 		'/product/nydroknit-viser-vand-night-swim-s-m-l-hl/' => '/remeshki-whoop-5-0/',
 		'/product/nydroknit-viser-vand-storm-gray/' => '/remeshki-whoop-5-0/',
-		'/product/pletyonyj-remeshok-dlya-whoop-4-0-superknit-luxe-band-luxe/' => '/remeshki-whoop-5-0/',
-		'/product/pletyonyj-remeshok-dlya-whoop-4-0-superknit-luxe-band-midnight-platinum/' => '/remeshki-whoop-5-0/',
-		'/product/prodlenie-podpiski-na-12-ili-24-mesyacza-dlya-whoop-4-0-peak/' => '/podpiski/',
-		'/product/sportivnyj-remeshok-dlya-whoop-4-0-sportflex-surge-2/' => '/remeshki-whoop-5-0/',
-		'/product/sportivnyj-remeshok-dlya-whoop-4-0-sportflex-surge/' => '/remeshki-whoop-5-0/',
 		'/product/sportivnyj-remeshok-dlya-whoop-mg-sportflex-band-fire/' => '/remeshki-whoop-mg/',
 		'/product/umnyj-treker-metabolizma-po-dyhaniyu-lumen-metabolism-tracker/' => '/#devices',
 		'/product/viser-vand-surerknit-onyh-s-m-l-hl/' => '/remeshki-whoop-5-0/',
@@ -76,8 +69,7 @@ function whoopstore_legacy_redirects() {
 		// Страницы без аналога на новом сайте.
 		'/copmany/' => '/',
 		'/for-business/' => '/',
-		'/remeshki-whop-4-0/' => '/',
-		'/whoop4/' => '/',
+		'/remeshki-whop-4-0/' => '/whoop4/',
 
 		// Пустые рубрики прежнего блога. Сам блог, его статьи и рубрика
 		// «Блог» с 2026-11-11 есть на новом сайте по прежним адресам.
