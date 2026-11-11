@@ -27,7 +27,7 @@ $whoopstore_accessories = array_merge(
 	[
 		[
 			'name'  => 'Ремешки для WHOOP 5.0 / MG (более 50 цветов)',
-			'image' => '/wp-content/uploads/2026/09/XxHSGND0LxCtAUYxCMxR-2.webp',
+			'image' => '/wp-content/uploads/2026/11/accessories-straps-2x.webp',
 			'href'  => '/remeshki-whoop-5-0/',
 		],
 	]
