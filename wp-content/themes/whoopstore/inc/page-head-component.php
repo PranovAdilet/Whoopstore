@@ -33,15 +33,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * с начала строки: вывод обеих функций вместе обязан совпадать со старым
  * побайтово, иначе сверка дампов "до/после" перестаёт что-либо доказывать.
  *
- * @param string $label Текст последней (текущей) крошки, напр. "Whoop MG".
+ * @param string $label  Текст последней (текущей) крошки, напр. "Whoop MG".
+ * @param array  $parent Промежуточная крошка-ссылка: [ 'label' => …, 'url' => … ],
+ *                       напр. «Блог» на странице статьи. Пусто — крошек две,
+ *                       как раньше, и разметка не меняется.
  */
-function whoopstore_breadcrumbs( $label ) {
+function whoopstore_breadcrumbs( $label, array $parent = [] ) {
+	$separator = get_theme_file_uri( 'assets/icons/breadcrumb-separator.svg' );
 	?>
 		<nav class="page-head__crumbs" aria-label="Хлебные крошки">
 			<a class="page-head__crumb-home" href="/" aria-label="Главная">
 				<img src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-home.svg' ) ); ?>" alt="" width="15" height="15" />
 			</a>
-			<img class="page-head__crumb-sep" src="<?php echo esc_url( get_theme_file_uri( 'assets/icons/breadcrumb-separator.svg' ) ); ?>" alt="" width="15" height="15" />
+			<?php if ( ! empty( $parent['label'] ) && ! empty( $parent['url'] ) ) : ?>
+			<img class="page-head__crumb-sep" src="<?php echo esc_url( $separator ); ?>" alt="" width="15" height="15" />
+			<a class="page-head__crumb-link" href="<?php echo esc_url( $parent['url'] ); ?>"><?php echo esc_html( $parent['label'] ); ?></a>
+			<?php endif; ?>
+			<img class="page-head__crumb-sep" src="<?php echo esc_url( $separator ); ?>" alt="" width="15" height="15" />
 			<span class="page-head__crumb-current" aria-current="page"><?php echo esc_html( $label ); ?></span>
 		</nav>
 <?php

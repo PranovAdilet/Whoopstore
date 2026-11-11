@@ -25,4 +25,16 @@ if ( '' === $whoopstore_crumb_label ) {
 	$whoopstore_crumb_label = get_the_title();
 }
 
-whoopstore_breadcrumbs( $whoopstore_crumb_label );
+// У статьи блога между «Главной» и статьёй — ссылка на сам блог (страница
+// со слагом blog, см. templates/page-blog.html).
+$whoopstore_crumb_parent = [];
+$whoopstore_blog_page    = is_singular( 'post' ) ? get_page_by_path( 'blog' ) : null;
+
+if ( $whoopstore_blog_page ) {
+	$whoopstore_crumb_parent = [
+		'label' => get_the_title( $whoopstore_blog_page ),
+		'url'   => get_permalink( $whoopstore_blog_page ),
+	];
+}
+
+whoopstore_breadcrumbs( $whoopstore_crumb_label, $whoopstore_crumb_parent );

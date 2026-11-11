@@ -4571,8 +4571,14 @@ p.contact-block__legal {
 	color: rgba(255, 255, 255, 0.8);
 }
 
-.page-head__crumb-current {
+.page-head__crumb-current,
+.page-head__crumb-link {
 	color: rgba(255, 255, 255, 0.5);
+}
+
+/* Промежуточная крошка-ссылка («Блог» на странице статьи). */
+.page-head__crumb-link:hover {
+	color: var(--wp--preset--color--foreground);
 }
 
 /* Единственное расхождение крошек между макетами: на подстраницах-каталогах
@@ -6881,5 +6887,160 @@ p.contact-block__legal {
 		width: 134px;
 		aspect-ratio: 243 / 413;
 		margin-inline: -20px;
+	}
+}
+
+/* ---------- Блог (2026-11-11) ---------- */
+
+/* Блог вернули по просьбе заказчика; в макете Figma его нет, поэтому всё
+   собрано из существующих элементов сайта: список — плитки .tile-card в
+   сетке .tile-grid (как разделы каталога ремешков), шапка — .page-head,
+   статья — колонка текста на общих токенах цвета и кегля. Шаблоны:
+   templates/page-blog.html, archive.html, single.html. */
+
+.post-grid__empty {
+	padding: 30px 40px 0;
+}
+
+.post-grid__pagination {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 30px;
+	padding: 0 40px;
+}
+
+.post-grid__pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 40px;
+	height: 40px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: var(--wp--preset--color--surface);
+	color: var(--wp--preset--color--foreground);
+	font-size: var(--wp--preset--font-size--sm);
+}
+
+.post-grid__pagination .page-numbers.current {
+	background: var(--wp--preset--color--accent);
+	color: var(--wp--preset--color--accent-contrast);
+}
+
+/* Колонка статьи — 800px текста плюс поля 40px, по центру холста. */
+.blog-article {
+	max-width: 880px;
+	margin-inline: auto;
+}
+
+.blog-article .blog-article__date {
+	margin-top: 12px;
+	font-size: var(--wp--preset--font-size--sm);
+	color: var(--wp--preset--color--foreground-faint);
+}
+
+.blog-article__cover {
+	margin: 30px 40px 0;
+}
+
+.blog-article__cover img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: var(--wp--custom--radius--card);
+}
+
+.blog-article__content {
+	margin-top: 30px;
+	padding: 0 40px;
+	font-size: var(--wp--preset--font-size--base);
+	line-height: 1.6;
+	color: var(--wp--preset--color--foreground-muted);
+}
+
+.blog-article__content > * + * {
+	margin-top: 0;
+}
+
+.blog-article__content p {
+	margin: 0 0 16px;
+}
+
+.blog-article__content h2,
+.blog-article__content h3,
+.blog-article__content h4 {
+	color: var(--wp--preset--color--foreground);
+	font-weight: 500;
+	line-height: 1.2;
+	letter-spacing: -0.2px;
+}
+
+.blog-article__content h2 {
+	margin: 40px 0 16px;
+	font-size: 24px;
+}
+
+.blog-article__content h3 {
+	margin: 32px 0 12px;
+	font-size: 20px;
+}
+
+.blog-article__content h4 {
+	margin: 24px 0 12px;
+	font-size: 18px;
+}
+
+.blog-article__content ul,
+.blog-article__content ol {
+	margin: 0 0 20px;
+	padding-left: 24px;
+}
+
+.blog-article__content li {
+	margin: 0 0 10px;
+}
+
+.blog-article__content strong,
+.blog-article__content b {
+	color: var(--wp--preset--color--foreground);
+	font-weight: 600;
+}
+
+.blog-article__content a {
+	color: var(--wp--preset--color--accent);
+	text-decoration: underline;
+}
+
+.blog-article__content figure {
+	margin: 24px 0;
+}
+
+.blog-article__content img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--wp--custom--radius--card);
+}
+
+@media (max-width: 781px) {
+	.post-grid__empty,
+	.post-grid__pagination,
+	.blog-article__content {
+		padding-left: 20px;
+		padding-right: 20px;
+	}
+
+	.blog-article__cover {
+		margin: 24px 20px 0;
+	}
+
+	.blog-article__content h2 {
+		font-size: 20px;
+	}
+
+	.blog-article__content h3 {
+		font-size: 18px;
 	}
 }

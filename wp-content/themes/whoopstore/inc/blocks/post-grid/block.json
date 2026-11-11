@@ -1,0 +1,25 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "whoopstore/post-grid",
+	"title": "Статьи блога",
+	"category": "theme",
+	"icon": "grid-view",
+	"description": "Статьи блога плитками: обложка, затемнение и заголовок поверх. Ничего не хранит: список собирается на сервере из опубликованных записей.",
+	"textdomain": "whoopstore",
+	"attributes": {},
+	"supports": {
+		"html": false,
+		"className": false,
+		"customClassName": false,
+		"anchor": false,
+		"align": false,
+		"spacing": false,
+		"typography": false,
+		"color": false,
+		"multiple": false,
+		"reusable": false
+	},
+	"editorScript": "whoopstore-block-post-grid",
+	"render": "file:./render.php"
+}
