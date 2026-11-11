@@ -71,11 +71,7 @@ if ( 'plan' !== $whoopstore_grid_layout ) {
 // Оформление тарифов: к данным товара добавляются решения секции по макету.
 $whoopstore_grid_cards = whoopstore_category_cards(
 	$whoopstore_grid_category,
-	[
-		'modifier' => 'plan',
-		'phone'    => '/wp-content/uploads/2026/09/subscriptions-plan-phone.webp',
-		'image'    => '/wp-content/uploads/2026/09/XxHSGND0LxCtAUYxCMxR-2.webp',
-	]
+	array_merge( whoopstore_plan_media(), [ 'modifier' => 'plan' ] )
 );
 
 if ( ! $whoopstore_grid_cards ) {

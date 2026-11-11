@@ -17,10 +17,8 @@
  * Разметку секции печатает общая whoopstore_catalog_section(), карточку —
  * whoopstore_device_card() с модификатором `plan` (.device-card--plan в
  * theme.css). Медиа-зона — оформление секции, а не фото товара:
- *  - мокап телефона — два слоя Figma (node 1:3024 "Screen" + 1:3025 "Silver")
- *    одним файлом subscriptions-plan-phone;
- *  - фото браслета — XxHSGND0LxCtAUYxCMxR-2 (экспорт узла из Figma битый, взят
- *    одноимённый реальный ассет, пропорции совпадают);
+ *  - мокап телефона и фото браслета — whoopstore_plan_media()
+ *    (inc/card-component.php), 2x-экспорт из макета от 2026-11-11;
  *  - слово-подложка — тариф из названия товара (whoopstore_plan_watermark()).
  */
 
@@ -28,11 +26,9 @@
 $whoopstore_plan_order = [ 'LIFE', 'ONE', 'PEAK' ];
 
 $whoopstore_subscription_plans = array_map( function ( $card ) {
-	return array_merge( $card, [
+	return array_merge( $card, whoopstore_plan_media(), [
 		'watermark' => whoopstore_plan_watermark( $card['name'] ),
 		'modifier'  => 'plan',
-		'phone'     => '/wp-content/uploads/2026/09/subscriptions-plan-phone.webp',
-		'image'     => '/wp-content/uploads/2026/09/XxHSGND0LxCtAUYxCMxR-2.webp',
 	] );
 }, whoopstore_category_cards( 'podpiski-whoop' ) );
 

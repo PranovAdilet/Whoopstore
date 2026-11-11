@@ -85,6 +85,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  *                                     modifier='plan'.
  * }
  */
+/**
+ * Телефон и браслет карточки тарифа (modifier 'plan') — одни на все
+ * карточки тарифов и активации: «Выберите подписку», «Активация и
+ * продление», блок «Товары категории» с тарифами. Раньше пути были вписаны
+ * в каждое из трёх мест; картинки заменили 2026-11-11 (2x из макета: окно
+ * телефона 159×246 и браслет 154×182) — теперь они в одном месте.
+ *
+ * @return array{phone: string, image: string}
+ */
+function whoopstore_plan_media() {
+	return [
+		'phone' => '/wp-content/uploads/2026/11/plan-phone-2x.webp',
+		'image' => '/wp-content/uploads/2026/11/plan-band-2x.webp',
+	];
+}
+
 function whoopstore_device_card( array $item ) {
 	$href        = isset( $item['href'] ) ? $item['href'] : '#';
 	$button_text = isset( $item['button_text'] ) ? $item['button_text'] : 'Купить';
@@ -136,7 +152,7 @@ function whoopstore_device_card( array $item ) {
 				<span class="device-card__watermark"><?php echo esc_html( $item['watermark'] ); ?></span>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['phone'] ) ) : ?>
-				<span class="device-card__phone"><img src="<?php echo esc_url( $item['phone'] ); ?>" alt="" width="157" height="321" loading="lazy" /></span>
+				<span class="device-card__phone"><img src="<?php echo esc_url( $item['phone'] ); ?>" alt="" width="159" height="246" loading="lazy" /></span>
 			<?php endif; ?>
 			<?php if ( '' !== $photo ) : ?>
 				<?php

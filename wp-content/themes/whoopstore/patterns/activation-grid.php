@@ -23,13 +23,12 @@
  *  - `plan-solo` — карточка без тарифа в названии (активация): только
  *    телефон, шире и по центру, без подложки и без фото браслета.
  *
- * Ассеты — мокап телефона subscriptions-plan-phone и фото браслета
- * XxHSGND0LxCtAUYxCMxR-2 (узел Figma отдаёт битым, взят тот же реальный ассет,
- * что у карточек тарифов).
+ * Ассеты — те же телефон и браслет, что у карточек тарифов
+ * (whoopstore_plan_media(), inc/card-component.php).
  */
 
-$whoopstore_activation_phone = '/wp-content/uploads/2026/09/subscriptions-plan-phone.webp';
-$whoopstore_activation_band  = '/wp-content/uploads/2026/09/XxHSGND0LxCtAUYxCMxR-2.webp';
+$whoopstore_activation_phone = whoopstore_plan_media()['phone'];
+$whoopstore_activation_band  = whoopstore_plan_media()['image'];
 
 $whoopstore_activation = array_map( function ( $card ) use ( $whoopstore_activation_phone, $whoopstore_activation_band ) {
 	$card['phone'] = $whoopstore_activation_phone;

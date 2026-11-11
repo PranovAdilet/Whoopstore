@@ -4205,8 +4205,6 @@ p.contact-block__legal {
 	--plan-media-gap: 30px;
 	--plan-phone-left: 30px;
 	--plan-phone-width: 159px;
-	--plan-phone-image-width: 157px;
-	--plan-phone-image-top: 4px;
 	--plan-photo-height: 182px;
 }
 
@@ -4222,10 +4220,12 @@ p.contact-block__legal {
 	border-radius: 0;
 }
 
-/* Телефон в макете выше своей рамки-контейнера и подрезан снизу
-   (156.743×320.446 в окне 159×246, верх на 4px ниже края) — воспроизводим
-   тем же способом: окно с overflow:hidden. Высота окна во всех вариантах
-   равна высоте сцены (сверено по всем четырём наборам чисел). */
+/* Телефон в макете выше своей рамки-контейнера и подрезан снизу — окно с
+   overflow:hidden. Высота окна во всех вариантах равна высоте сцены
+   (сверено по всем четырём наборам чисел). С 2026-11-11 картинка — уже
+   готовое окно из макета (2x от 159×246, телефон в нём с тем же отступом
+   сверху), поэтому она идёт во всю ширину окна без сдвига; раньше в окно
+   вписывался целый телефон 157×321 со сдвигом 4px. */
 .device-card__phone {
 	position: absolute;
 	left: var(--plan-phone-left);
@@ -4237,9 +4237,8 @@ p.contact-block__legal {
 
 .device-card__phone img {
 	display: block;
-	width: var(--plan-phone-image-width);
+	width: 100%;
 	height: auto;
-	margin-top: var(--plan-phone-image-top);
 }
 
 /* Фото браслета — не на всю медиа-зону, как в обычной карточке, а своим
@@ -4287,8 +4286,6 @@ p.contact-block__legal {
 .device-card--plan-solo {
 	--plan-phone-left: 83px;
 	--plan-phone-width: 195px;
-	--plan-phone-image-width: 192px;
-	--plan-phone-image-top: 5px;
 }
 
 /* Слово-подложка отцентровано ровно по фото браслета (в макете центр
@@ -5463,8 +5460,6 @@ p.contact-block__legal {
 		--plan-media-gap: 24px;
 		--plan-phone-left: 26.67px;
 		--plan-phone-width: 141.33px;
-		--plan-phone-image-width: 139.33px;
-		--plan-phone-image-top: 3.56px;
 		--plan-photo-height: 161.7px;
 	}
 
@@ -5488,8 +5483,6 @@ p.contact-block__legal {
 		--plan-media-gap: 7.56px;
 		--plan-phone-left: 73.78px;
 		--plan-phone-width: 173.33px;
-		--plan-phone-image-width: 170.87px;
-		--plan-phone-image-top: 4.44px;
 	}
 
 	.device-card__watermark {
