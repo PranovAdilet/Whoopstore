@@ -222,7 +222,7 @@
 	<!-- wp:html -->
 	<div class="no-display__closing-card">
 		<div class="no-display__closing-media" aria-hidden="true">
-			<img src="/wp-content/uploads/2026/09/Rectangle-100252.webp" alt="" width="196" height="186" loading="lazy" />
+			<img src="/wp-content/uploads/2026/11/no-display-photo-2x.webp" alt="" width="196" height="186" loading="lazy" />
 		</div>
 		<div class="no-display__closing-content">
 			<!-- wp:paragraph {"className":"no-display__closing text-label"} -->

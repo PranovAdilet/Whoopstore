@@ -88,7 +88,7 @@
 		</div>
 
 		<div class="telegram-subscribe__media" aria-hidden="true">
-			<img class="telegram-subscribe__media-img" src="/wp-content/uploads/2026/09/Frame-6631.webp" width="243" height="406" alt="" loading="lazy" />
+			<img class="telegram-subscribe__media-img" src="/wp-content/uploads/2026/11/telegram-phone-2x.webp" width="243" height="406" alt="" loading="lazy" />
 		</div>
 
 	</div>
