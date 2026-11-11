@@ -83,6 +83,39 @@ add_action( 'template_redirect', function () {
 } );
 
 /**
+ * Крошки страницы товара ведут сразу на свёрстанную страницу раздела.
+ *
+ * WooCommerce ставит в промежуточные крошки адреса архивов категорий, а те по
+ * карте выше уходят 301-м на страницы каталога. Для покупателя разницы нет,
+ * но поисковый аудит считает каждую такую ссылку лишним редиректом (правка
+ * 2026-11-11). Карта та же — второй не заводим.
+ *
+ * @param array $crumbs Крошки WooCommerce: [ [ название, адрес ], … ].
+ * @return array
+ */
+add_filter( 'woocommerce_get_breadcrumb', function ( $crumbs ) {
+	$targets = [];
+
+	foreach ( whoopstore_category_redirects() as $slug => $path ) {
+		$link = get_term_link( $slug, 'product_cat' );
+
+		if ( ! is_wp_error( $link ) ) {
+			$targets[ untrailingslashit( $link ) ] = home_url( $path );
+		}
+	}
+
+	foreach ( $crumbs as $i => $crumb ) {
+		$url = isset( $crumb[1] ) ? untrailingslashit( (string) $crumb[1] ) : '';
+
+		if ( isset( $targets[ $url ] ) ) {
+			$crumbs[ $i ][1] = $targets[ $url ];
+		}
+	}
+
+	return $crumbs;
+} );
+
+/**
  * Служебные страницы WooCommerce «Корзина» и «Оформление заказа» — на Главную
  * с открытой корзиной.
  *
