@@ -4198,14 +4198,40 @@ p.contact-block__legal {
    на mobile сцена активации и сцена тарифа в макете совпадают
    до десятых (сверено: homepage-mobile 1:3967… vs
    page-subscriptions-mobile 1:4036…). */
+/* Масштаб сцены (правка 2026-11-11). Размеры сцены — из макета под
+   карточку 360px (содержимое 300px при паддинге 30). С 12.10 на экранах
+   шире 1600px контент растягивается, карточки становятся ~450px, а сцена в
+   пикселях оставалась макетной — телефон и браслет выглядели мелкими, а
+   карточка приплюснутой (замечание заказчика). Поэтому на desktop все
+   размеры сцены заданы в --u: 1/300 ширины содержимого карточки (единицы
+   контейнера), т.е. ровно 1px при макетных 360 и больше на широкой
+   карточке. На mobile --u = 1px: там свои макетные числа в px. */
 .device-card--plan {
+	--u: 1px;
 	--device-card-padding: 30px;
-	--plan-media-height: 246px;
+	--plan-media-height: calc(246 * var(--u));
 	--plan-media-shift: 0px;
-	--plan-media-gap: 30px;
-	--plan-phone-left: 30px;
-	--plan-phone-width: 159px;
-	--plan-photo-height: 182px;
+	--plan-media-gap: calc(30 * var(--u));
+	--plan-phone-left: calc(30 * var(--u));
+	--plan-phone-width: calc(159 * var(--u));
+	--plan-photo-height: calc(182 * var(--u));
+}
+
+@media (min-width: 782px) {
+	.device-card--plan {
+		container-type: inline-size;
+		--u: calc(100cqw / 300);
+	}
+
+	/* Отступы название→цена→кнопка в карточке тарифа — по desktop-макету
+	   «Подписок» (заметно больше, чем у обычной карточки товара). */
+	.device-card--plan .device-card__title {
+		margin-bottom: 24px;
+	}
+
+	.device-card--plan .device-card__price {
+		margin-bottom: 30px;
+	}
 }
 
 /* Медиа-зона тут не квадрат с фоном-заглушкой, а прозрачная сцена
@@ -4245,9 +4271,9 @@ p.contact-block__legal {
    размером и позицией из макета. */
 .device-card--plan .device-card__photo {
 	inset: auto;
-	left: 176px;
-	top: 68px;
-	width: 154px;
+	left: calc(176 * var(--u));
+	top: calc(68 * var(--u));
+	width: calc(154 * var(--u));
 	height: var(--plan-photo-height);
 	padding: 0;
 }
@@ -4266,9 +4292,9 @@ p.contact-block__legal {
    129px ширины, т.е. сцена перестала бы совпадать с тарифной. Подрезанный
    низ и так скрыт растворением. */
 .device-card--plan-compact {
-	--plan-media-height: 221px;
-	--plan-media-gap: 15px;
-	--plan-photo-height: 153px;
+	--plan-media-height: calc(221 * var(--u));
+	--plan-media-gap: calc(15 * var(--u));
+	--plan-photo-height: calc(153 * var(--u));
 }
 
 .device-card--plan-compact .device-card__photo {
@@ -4284,22 +4310,24 @@ p.contact-block__legal {
    Слово и фото не выводятся самой разметкой (нет watermark/image в данных),
    поэтому прятать их правилами не нужно. */
 .device-card--plan-solo {
-	--plan-phone-left: 83px;
-	--plan-phone-width: 195px;
+	--plan-phone-left: calc(83 * var(--u));
+	--plan-phone-width: calc(195 * var(--u));
 }
 
 /* Слово-подложка отцентровано ровно по фото браслета (в макете центр
    надписи и центр фото совпадают: 253px от левого края карточки). */
+/* Правка 2026-11-11 по скриншоту макета: начертание тоньше и с разрядкой
+   (было 600 и -0.32px). */
 .device-card__watermark {
 	position: absolute;
-	left: 176px;
-	top: 4px;
-	width: 154px;
+	left: calc(176 * var(--u));
+	top: calc(4 * var(--u));
+	width: calc(154 * var(--u));
 	text-align: center;
-	font-size: 32px;
-	font-weight: 600;
+	font-size: calc(32 * var(--u));
+	font-weight: 500;
 	line-height: 1.1;
-	letter-spacing: -0.32px;
+	letter-spacing: 0.1em;
 	color: rgba(255, 255, 255, 0.1);
 }
 
@@ -4310,7 +4338,7 @@ p.contact-block__legal {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	height: 78px;
+	height: calc(78 * var(--u, 1px));
 	background: linear-gradient(4.25deg, var(--wp--preset--color--surface) 10.885%, rgba(27, 30, 35, 0) 87.225%);
 }
 
