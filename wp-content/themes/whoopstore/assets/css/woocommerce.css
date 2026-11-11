@@ -347,15 +347,21 @@ table.variations.variations--visually-replaced {
    неактивный свотч = Dark (rgba(255,255,255,0.1) + белый текст),
    активный = White (белая заливка + тёмный текст). Здесь остаётся только
    форма и кегль, которые у свотча свои. */
+/* Правка 2026-11-11: ширина по тексту, не меньше круга. Круг 29×29 был
+   рассчитан на один-два знака (S, L); у «Продления подписки Whoop 4.0»
+   варианты «12 мес.»/«24 мес.», у ремешков на бицепс — «S/M»/«L/XL», и
+   в круге текст наезжал на соседнюю кнопку. Короткие подписи остаются
+   кругом: 29px при полях 10px. */
 .variation-swatches__option {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 29px;
+	min-width: 29px;
 	height: 29px;
-	padding: 0;
+	padding: 0 10px;
 	border: none;
-	border-radius: 50%;
+	border-radius: 999px;
+	white-space: nowrap;
 	font-family: inherit;
 	font-size: 12px;
 	line-height: 1.2;
