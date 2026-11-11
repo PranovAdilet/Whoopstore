@@ -9,7 +9,9 @@
  *
  * На странице «Блог» (templates/page-blog.html) блок сам запрашивает записи;
  * в архиве рубрики (templates/archive.html) берёт основной запрос WordPress.
- * Пагинация штатная (paginate_links), по 12 статей на странице.
+ * Пагинация штатная (paginate_links), по 24 статьи на странице: пока статей
+ * меньше, весь блог — одна страница, и каждая статья доступна по ссылке с
+ * неё (в аудите статья со второй страницы числилась «сиротой»).
  *
  * @var array $attributes Атрибуты блока.
  */
@@ -26,7 +28,7 @@ if ( is_archive() ) {
 	$whoopstore_posts_query = new WP_Query( [
 		'post_type'           => 'post',
 		'post_status'         => 'publish',
-		'posts_per_page'      => 12,
+		'posts_per_page'      => 24,
 		'paged'               => max( 1, (int) get_query_var( 'paged' ) ),
 		'ignore_sticky_posts' => true,
 	] );
