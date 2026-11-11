@@ -1855,18 +1855,23 @@ a {
 	height: auto;
 }
 
-/* Обёртка заголовок+подпись — нужна только для mobile-раскладки
-   (картинка слева, текстовый блок справа, см. media-query ниже).
-   На desktop — display:contents, т.е. в раскладке её нет вообще:
-   .advantages__stat-title/-text остаются прямыми участниками flex-колонки
-   .advantages__stat с тем же gap:12px, что и до появления обёртки. */
+/* Обёртка заголовок+подпись. Правка заказчика 2026-11-11 по макету:
+   заголовок 20px, между заголовком и подписью 5px. Раньше на desktop
+   обёртка была display:contents, и заголовок с подписью стояли в общей
+   колонке карточки с её gap:12px — свой меньший отступ им можно дать только
+   отдельной колонкой. На mobile обёртка — вторая колонка карточки (картинка
+   слева), см. media-query ниже. */
 .advantages__stat-body {
-	display: contents;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
 }
 
 .advantages__stat-title {
 	font-weight: 600;
-	font-size: var(--wp--preset--font-size--base);
+	font-size: 20px;
+	line-height: 1.1;
+	letter-spacing: -0.2px;
 	text-align: left;
 }
 
