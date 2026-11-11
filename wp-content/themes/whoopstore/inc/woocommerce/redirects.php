@@ -54,6 +54,10 @@ function whoopstore_category_redirects() {
 		'aksessuary'             => '/#accessories',
 		'aktivaciya-i-prodlenie' => '/podpiski/',
 		'podpiski-whoop'         => '/podpiski/',
+		// Страница Whoop 4.0 (2026-11-11): ремешки и продление подписки для 4.0.
+		'whoop-4-0'              => '/whoop4/',
+		'remeshki-whoop-4-0'     => '/whoop4/',
+		'prodlenie-whoop-4-0'    => '/whoop4/',
 	] );
 }
 
