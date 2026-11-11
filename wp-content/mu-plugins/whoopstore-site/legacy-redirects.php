@@ -4,9 +4,10 @@
  *
  * Новый сайт встаёт на домен, где несколько лет работал прежний магазин.
  * Его страницы есть в поиске, в закладках и во внешних ссылках. Часть
- * товаров, страницы прежнего сайта и весь блог на новом сайте не повторяются
- * (решение 2026-09-18, launch-checklist.md, раздел 0). Без перенаправления
- * все эти адреса отдавали бы 404.
+ * товаров и страниц прежнего сайта на новом сайте не повторяются (решение
+ * 2026-09-18, launch-checklist.md, раздел 0). Без перенаправления все эти
+ * адреса отдавали бы 404. Блог 2026-11-11 перенесён целиком по прежним
+ * адресам, в таблице от него остались только пустые рубрики.
  *
  * Таблица собрана 2026-10-28 из опубликованных записей обоих сайтов; для
  * товаров, которых на новом сайте нет, — ближайший раздел каталога.
@@ -78,18 +79,11 @@ function whoopstore_legacy_redirects() {
 		'/remeshki-whop-4-0/' => '/',
 		'/whoop4/' => '/',
 
-		// Блог: на новом сайте его нет.
-		'/247-2/' => '/',
-		'/blog/' => '/',
-		'/category/akczii/' => '/',
-		'/category/blog/' => '/',
-		'/category/novosti/' => '/',
-		'/category/uncategorized/' => '/',
-		'/ot-universitetskogo-proekta-do-milliardnoj-kompanii/' => '/',
-		'/pochemu-whoop-nazyvayut-gadzhetom-milliarderov-kotorye-snyali-svoi-rolex/' => '/',
-		'/primenenie-za-predelami-sporta-pochemu-whoop-5-0-davno-uzhe-ne-fitnes-treker/' => '/',
-		'/whoop-4-0-i-son-rasskazyvaem-vse-chto-nuzhno-znat-ob-etom-pokazatele/' => '/',
-		'/whoop-5-0-pochemu-etot-treker-ne-pro-10-tysyach-shagov-a-pro-budushhee/' => '/',
+		// Пустые рубрики прежнего блога. Сам блог, его статьи и рубрика
+		// «Блог» с 2026-11-11 есть на новом сайте по прежним адресам.
+		'/category/akczii/' => '/blog/',
+		'/category/novosti/' => '/blog/',
+		'/category/uncategorized/' => '/blog/',
 
 		// Перенесено из .htaccess старого сайта.
 		'/product-category/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
