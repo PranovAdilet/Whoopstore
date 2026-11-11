@@ -115,6 +115,12 @@ add_action( 'wp_enqueue_scripts', function () {
 
 	// Бургер-меню — нужен на каждой странице (Header есть везде).
 	wp_enqueue_script( 'whoopstore-header-nav', get_theme_file_uri( 'assets/js/header-nav.js' ), [], whoopstore_asset_version( 'assets/js/header-nav.js' ), true );
+	wp_enqueue_script( 'whoopstore-header-sticky', get_theme_file_uri( 'assets/js/header-sticky.js' ), [], whoopstore_asset_version( 'assets/js/header-sticky.js' ), true );
+
+	// «Частые вопросы» — синхронизированный паттерн, стоит на четырёх
+	// страницах, а может появиться и на других; скрипт крошечный, поэтому
+	// подключается везде, а не по списку страниц.
+	wp_enqueue_script( 'whoopstore-faq-accordion', get_theme_file_uri( 'assets/js/faq-accordion.js' ), [], whoopstore_asset_version( 'assets/js/faq-accordion.js' ), true );
 
 	// Точки-пагинация мобильного слайдера преимуществ (секция "Отсутствие дисплея…").
 	// Паттерн whoopstore/no-display пока используется только на Главной — подключаем

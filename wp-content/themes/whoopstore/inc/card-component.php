@@ -102,6 +102,19 @@ function whoopstore_device_card( array $item ) {
 	// выводит srcset/sizes, width/height и alt из медиатеки), либо готовый путь
 	// (статичные карточки паттернов). Класс и loading у тега одни и те же.
 	// Вложение, которого нет, даёт пустую строку — тогда остаётся заглушка.
+	// Модель в скобках в конце названия («… на 1 год (Whoop 5.0)») — отдельной
+	// строкой (правка заказчика 2026-11-11): иначе она переносится как
+	// придётся и рвёт название посередине.
+	$title = esc_html( $item['name'] );
+	if ( preg_match( '/^(.*\S)\s+(\([^()]+\))$/u', (string) $item['name'], $title_parts ) ) {
+		$title = esc_html( $title_parts[1] ) . ' <span class="device-card__title-note">' . esc_html( $title_parts[2] ) . '</span>';
+	}
+
+	// Кликабельна вся карточка, а не только кнопка (правка заказчика
+	// 2026-11-11): ссылка кнопки растягивается на карточку через ::after
+	// (theme.css), без вложенных ссылок. Заглушки «#» не растягиваются.
+	$button_class = '#' !== $href ? ' device-card__button--stretched' : '';
+
 	$photo = '';
 	if ( ! empty( $item['image_id'] ) ) {
 		$photo = wp_get_attachment_image(
@@ -139,7 +152,7 @@ function whoopstore_device_card( array $item ) {
 				<span class="device-card__badge"><?php echo esc_html( $item['badge'] ); ?></span>
 			<?php endif; ?>
 		</div>
-		<p class="device-card__title"><?php echo esc_html( $item['name'] ); ?></p>
+		<p class="device-card__title"><?php echo $title; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- части экранированы выше. ?></p>
 		<?php if ( ! empty( $item['price_html'] ) ) : ?>
 			<?php /* bdi добавлен к разрешённым тегам: WooCommerce оборачивает в
 			        него сумму (изоляция направления текста), а в стандартном
@@ -154,7 +167,7 @@ function whoopstore_device_card( array $item ) {
 				<ins><?php echo esc_html( $item['price'] ); ?></ins>
 			</p>
 		<?php endif; ?>
-		<a class="wp-block-button__link wp-element-button device-card__button" href="<?php echo esc_url( $href ); ?>"><?php echo esc_html( $button_text ); ?></a>
+		<a class="wp-block-button__link wp-element-button device-card__button<?php echo esc_attr( $button_class ); ?>" href="<?php echo esc_url( $href ); ?>"><?php echo esc_html( $button_text ); ?></a>
 	</div>
 	<?php
 }

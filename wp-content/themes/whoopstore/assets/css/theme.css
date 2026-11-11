@@ -454,6 +454,32 @@ a {
 	padding-bottom: 20px;
 }
 
+/* Липкая шапка (правка заказчика 2026-11-11, assets/js/header-sticky.js).
+   Фон полупрозрачный цвета страницы с размытием: шапка проходит и над
+   фото первого экрана, и над тёмными секциями, текст меню должен читаться
+   везде. Слой 100 — выше контента, ниже корзины и окон (120–220 в
+   woocommerce.css). Отступ сверху — под панель администратора, если она
+   есть. */
+.site-header.is-stuck {
+	position: fixed;
+	top: var(--wp-admin--admin-bar--height, 0px);
+	left: 0;
+	right: 0;
+	z-index: 100;
+	background: color-mix(in srgb, var(--wp--preset--color--background) 88%, transparent);
+	-webkit-backdrop-filter: blur(12px);
+	backdrop-filter: blur(12px);
+}
+
+/* Яндекс Браузер показывает поверх крупных картинок свою панель (поиск по
+   картинке и т. п.) — заказчик просил её убрать (2026-11-11). Панель
+   появляется при наведении на <img>; декоративным картинкам наведение не
+   нужно, клик проходит к родителю (ссылке, карточке). */
+[aria-hidden="true"] img,
+.straps-carousel__photo-group-img {
+	pointer-events: none;
+}
+
 /* Тот же blockGap, но этажом выше — на ОБЁРТКЕ шаблонной части (правка
    2026-09-28 по жалобе «на ремешках шапка выше, чем на Главной»).
    Обнуления margin-top у самой .site-header мало: в потоке .home-hero-wrap
@@ -2141,6 +2167,26 @@ a {
 
 .device-card__button {
 	align-self: flex-start;
+}
+
+/* Вся карточка — ссылка (правка заказчика 2026-11-11). Псевдоэлемент кнопки
+   растягивается на карточку; position:relative у самой карточки задаёт ему
+   границы. Кнопка остаётся единственной ссылкой: фокус, текст для
+   скринридера и обработчики — прежние. */
+.device-card {
+	position: relative;
+}
+
+.device-card__button--stretched::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+/* Модель в скобках — своей строкой (см. whoopstore_device_card()). */
+.device-card__title-note {
+	display: block;
 }
 
 /* ---------- Help block ---------- */
