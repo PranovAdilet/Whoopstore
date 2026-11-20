@@ -426,6 +426,19 @@ table.variations.variations--visually-replaced {
 	font-weight: 600;
 }
 
+/* Списки в описании (правка 2026-11-20): тексты товаров перенесены со
+   старого сайта, в них есть перечни «Какие показатели собирает?» и
+   «Комплектация». Маркеры и отступы — как у абзацев описания. */
+.product-page__description ul,
+.product-page__description ol {
+	margin: 6px 0 1.2em;
+	padding-left: 18px;
+}
+
+.product-page__description li + li {
+	margin-top: 4px;
+}
+
 /* ---------- Аккордеоны товара (Figma 30:260…30:269) ---------- */
 
 /* Строка 40px между линиями-разделителями: 12px + текст 13px (15.6) + 12px.
