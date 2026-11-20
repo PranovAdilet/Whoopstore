@@ -166,13 +166,23 @@ function whoopstore_single_accordions() {
 
 	$items = [];
 
+	// У вариативного товара «виртуальный» — свойство вариантов, а не самого
+	// товара (продление подписки Whoop 4.0 на 12/24 мес.): везут его, только
+	// если хотя бы один вариант не виртуальный.
+	$ships = $product->is_type( 'variable' )
+		? (bool) array_filter( $product->get_children(), function ( $id ) {
+			$variation = wc_get_product( $id );
+			return $variation && ! $variation->is_virtual();
+		} )
+		: ! $product->is_virtual();
+
 	foreach ( whoopstore_product_accordion_fields() as $key => $label ) {
 		$value = (string) $product->get_meta( $key );
 
 		// Доставка одинакова для всех товаров, которые действительно везут:
 		// пустое поле заменяется общим текстом из настроек. Виртуальные
 		// товары (подписки, активация) не доставляют — у них аккордеона нет.
-		if ( '' === trim( $value ) && '_whoopstore_delivery' === $key && ! $product->is_virtual() ) {
+		if ( '' === trim( $value ) && '_whoopstore_delivery' === $key && $ships ) {
 			$value = whoopstore_default_delivery_text();
 		}
 
