@@ -7000,7 +7000,8 @@ p.contact-block__legal {
 	border-radius: var(--wp--custom--radius--card);
 }
 
-.blog-article__content {
+.blog-article__content ,
+.page-text {
 	margin-top: 30px;
 	padding: 0 40px;
 	font-size: var(--wp--preset--font-size--base);
@@ -7008,64 +7009,80 @@ p.contact-block__legal {
 	color: var(--wp--preset--color--foreground-muted);
 }
 
-.blog-article__content > * + * {
+.blog-article__content > * + * ,
+.page-text > * + * {
 	margin-top: 0;
 }
 
-.blog-article__content p {
+.blog-article__content p ,
+.page-text p {
 	margin: 0 0 16px;
 }
 
 .blog-article__content h2,
+.page-text h2,
 .blog-article__content h3,
-.blog-article__content h4 {
+.page-text h3,
+.blog-article__content h4 ,
+.page-text h4 {
 	color: var(--wp--preset--color--foreground);
 	font-weight: 500;
 	line-height: 1.2;
 	letter-spacing: -0.2px;
 }
 
-.blog-article__content h2 {
+.blog-article__content h2 ,
+.page-text h2 {
 	margin: 40px 0 16px;
 	font-size: 24px;
 }
 
-.blog-article__content h3 {
+.blog-article__content h3 ,
+.page-text h3 {
 	margin: 32px 0 12px;
 	font-size: 20px;
 }
 
-.blog-article__content h4 {
+.blog-article__content h4 ,
+.page-text h4 {
 	margin: 24px 0 12px;
 	font-size: 18px;
 }
 
 .blog-article__content ul,
-.blog-article__content ol {
+.page-text ul,
+.blog-article__content ol ,
+.page-text ol {
 	margin: 0 0 20px;
 	padding-left: 24px;
 }
 
-.blog-article__content li {
+.blog-article__content li ,
+.page-text li {
 	margin: 0 0 10px;
 }
 
 .blog-article__content strong,
-.blog-article__content b {
+.page-text strong,
+.blog-article__content b ,
+.page-text b {
 	color: var(--wp--preset--color--foreground);
 	font-weight: 600;
 }
 
-.blog-article__content a {
+.blog-article__content a ,
+.page-text a {
 	color: var(--wp--preset--color--accent);
 	text-decoration: underline;
 }
 
-.blog-article__content figure {
+.blog-article__content figure ,
+.page-text figure {
 	margin: 24px 0;
 }
 
-.blog-article__content img {
+.blog-article__content img ,
+.page-text img {
 	display: block;
 	max-width: 100%;
 	height: auto;
@@ -7075,7 +7092,8 @@ p.contact-block__legal {
 @media (max-width: 781px) {
 	.post-grid__empty,
 	.post-grid__pagination,
-	.blog-article__content {
+	.blog-article__content ,
+	.page-text {
 		padding-left: 20px;
 		padding-right: 20px;
 	}
@@ -7084,11 +7102,26 @@ p.contact-block__legal {
 		margin: 24px 20px 0;
 	}
 
-	.blog-article__content h2 {
+	.blog-article__content h2 ,
+	.page-text h2 {
 		font-size: 20px;
 	}
 
-	.blog-article__content h3 {
+	.blog-article__content h3 ,
+	.page-text h3 {
 		font-size: 18px;
 	}
+}
+
+/* Текстовый раздел на странице каталога (правка 2026-11-20): «Зачем нужен
+   Whoop 4.0» перенесён со старой страницы. Типографика — та же, что у текста
+   статьи блога (правила выше подключены к .page-text), здесь только место
+   на странице: отступ секции и ширина строки, удобная для чтения. */
+.catalog-page > .page-text {
+	max-width: none;
+	margin-top: var(--wp--custom--section-gap--default, 140px);
+}
+
+.page-text > * {
+	max-width: 800px;
 }
