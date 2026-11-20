@@ -30,7 +30,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array
  */
 function whoopstore_product_accordion_fields() {
+	// «Подробнее» добавлен 2026-11-20: тексты товаров перенесены со старого
+	// сайта, у трекеров это вступление плюс перечни показателей и
+	// комплектации. В макете под кнопкой — только короткое описание, а всё
+	// подробное — в аккордеонах, поэтому перечни живут здесь, в том же
+	// компоненте, что «Таблица размеров» и «Доставка».
 	return [
+		'_whoopstore_details'    => 'Подробнее',
 		'_whoopstore_size_guide' => 'Таблица размеров',
 		'_whoopstore_delivery'   => 'Доставка',
 	];
@@ -93,6 +99,7 @@ add_filter( 'woocommerce_get_settings_products', function ( $settings, $section 
 
 add_action( 'woocommerce_product_options_general_product_data', function () {
 	$descriptions = [
+		'_whoopstore_details'    => 'Подробности о товаре в аккордеоне «Подробнее»: показатели, комплектация, совместимость. Короткое описание — в основном поле «Описание». Пусто — аккордеон не выводится.',
 		'_whoopstore_size_guide' => 'Содержимое аккордеона «Таблица размеров» на странице товара. Пусто — аккордеон не выводится.',
 		'_whoopstore_delivery'   => 'Условия доставки именно этого товара. Пусто — берётся общий текст из WooCommerce → Настройки → Товары.',
 	];
