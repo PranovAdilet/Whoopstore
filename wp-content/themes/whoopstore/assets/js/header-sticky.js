@@ -30,6 +30,14 @@
 		header.classList.toggle( 'is-stuck', stuck );
 	}
 
+	// Высота шапки — для отступа прокрутки к якорям (:target в theme.css):
+	// фиксированная шапка не должна закрывать верх секции.
+	function setHeight() {
+		document.documentElement.style.setProperty( '--site-header-height', header.offsetHeight + 'px' );
+	}
+
 	window.addEventListener( 'scroll', update, { passive: true } );
+	window.addEventListener( 'resize', setHeight, { passive: true } );
+	setHeight();
 	update();
 } )();
