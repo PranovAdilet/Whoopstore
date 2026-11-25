@@ -224,6 +224,21 @@ function whoopstore_seo_current_url() {
 }
 
 /**
+ * Второй <title> при Yoast SEO.
+ *
+ * В блочной теме ядро при выборе шаблона (locate_block_template) вешает на
+ * wp_head свой безусловный _block_template_render_title_tag. Yoast снимает
+ * только обычный _wp_render_title_tag и выводит заголовок сам, поэтому в
+ * <head> оказывалось два <title>. Снимаем ядровый, пока Yoast активен; без
+ * Yoast заголовок по-прежнему выводит ядро.
+ */
+add_action( 'wp_head', function () {
+	if ( defined( 'WPSEO_VERSION' ) ) {
+		remove_action( 'wp_head', '_block_template_render_title_tag', 1 );
+	}
+}, 0 );
+
+/**
  * Выводит метатеги в <head>.
  *
  * Приоритет 3 — после robots ядра и preload первого экрана (приоритет 2), но
