@@ -78,10 +78,9 @@ function whoopstore_legacy_redirects() {
 		'/category/uncategorized/' => '/blog/',
 		'/author/admin/' => '/blog/',
 
-		// Страниц о cookie на новом сайте нет; ближайшая по смыслу —
-		// политика конфиденциальности.
-		'/cookie-policy/' => '/politika-konfidenczialnosti/',
-		'/cookie-policy2/' => '/politika-konfidenczialnosti/',
+		// Пустой черновик-дубль страницы «Политика использования файлов
+		// cookie»; сама страница перенесена по адресу /cookie-policy/.
+		'/cookie-policy2/' => '/cookie-policy/',
 
 		// Перенесено из .htaccess старого сайта.
 		'/product-category/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
