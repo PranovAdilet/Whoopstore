@@ -76,6 +76,12 @@ function whoopstore_legacy_redirects() {
 		'/category/akczii/' => '/blog/',
 		'/category/novosti/' => '/blog/',
 		'/category/uncategorized/' => '/blog/',
+		'/author/admin/' => '/blog/',
+
+		// Страниц о cookie на новом сайте нет; ближайшая по смыслу —
+		// политика конфиденциальности.
+		'/cookie-policy/' => '/politika-konfidenczialnosti/',
+		'/cookie-policy2/' => '/politika-konfidenczialnosti/',
 
 		// Перенесено из .htaccess старого сайта.
 		'/product-category/politika-konfidenczialnosti/' => '/politika-konfidenczialnosti/',
