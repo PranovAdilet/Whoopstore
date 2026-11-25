@@ -1,6 +1,6 @@
 <?php
 /**
- * Счётчики аналитики: Яндекс.Метрика и Google Tag Manager.
+ * Счётчики аналитики: Яндекс.Метрика, Top.Mail.Ru и Google Tag Manager.
  *
  * ТЗ требует сохранить Метрику/GTM и рекламные события. Номеров счётчиков
  * заказчик пока не дал, поэтому здесь только точка подключения: пока поля
@@ -30,6 +30,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function whoopstore_metrika_id() {
 	return preg_replace( '/\D/', '', (string) get_option( 'whoopstore_yandex_metrika_id', '' ) );
+}
+
+/**
+ * Номер счётчика Top.Mail.Ru (только цифры) или пустая строка.
+ *
+ * На прежнем сайте он стоял в шапке темы (dt-the7/header.php), через него
+ * работает реклама VK; при переезде 2026-11-25 перенесён сюда.
+ *
+ * @return string
+ */
+function whoopstore_top_mail_ru_id() {
+	return preg_replace( '/\D/', '', (string) get_option( 'whoopstore_top_mail_ru_id', '' ) );
 }
 
 /**
@@ -106,6 +118,28 @@ add_action( 'wp_head', function () {
 <!-- /Yandex.Metrika counter -->
 		<?php
 	}
+
+	$tmr = whoopstore_top_mail_ru_id();
+
+	if ( '' !== $tmr ) {
+		// Код вендора как на прежнем сайте, подставлен только номер.
+		?>
+<!-- Top.Mail.Ru counter -->
+<script type="text/javascript">
+var _tmr = window._tmr || (window._tmr = []);
+_tmr.push({id: "<?php echo (int) $tmr; ?>", type: "pageView", start: (new Date()).getTime()});
+(function (d, w, id) {
+  if (d.getElementById(id)) return;
+  var ts = d.createElement("script"); ts.type = "text/javascript"; ts.async = true; ts.id = id;
+  ts.src = "https://top-fwz1.mail.ru/js/code.js";
+  var f = function () {var s = d.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ts, s);};
+  if (w.opera == "[object Opera]") { d.addEventListener("DOMContentLoaded", f, false); } else { f(); }
+})(document, window, "tmr-code");
+</script>
+<noscript><div><img src="https://top-fwz1.mail.ru/counter?id=<?php echo (int) $tmr; ?>;js=na" style="position:absolute;left:-9999px;" alt="Top.Mail.Ru" /></div></noscript>
+<!-- /Top.Mail.Ru counter -->
+		<?php
+	}
 }, 1 );
 
 // Запасной кадр GTM для браузеров без JS — по требованию Google идёт сразу
@@ -140,6 +174,11 @@ add_action( 'admin_init', function () {
 			'label'       => 'Яндекс.Метрика',
 			'placeholder' => 'например, 12345678',
 			'description' => 'Номер счётчика. Пусто — счётчик не подключается.',
+		],
+		'whoopstore_top_mail_ru_id'    => [
+			'label'       => 'Top.Mail.Ru',
+			'placeholder' => 'например, 1234567',
+			'description' => 'Номер счётчика (реклама VK). Пусто — счётчик не подключается.',
 		],
 		'whoopstore_gtm_id'            => [
 			'label'       => 'Google Tag Manager',
